@@ -32,6 +32,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
+    - name: Verify pylint installation
+      run: |
+        pylint --version
+    
     - name: Lint with pylint
       run: |
         make lint

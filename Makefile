@@ -5,8 +5,11 @@ install:
 		pip install -r requirements.txt
 
 test:
-	. venv/bin/activate && \
-	python -m pytest tests/ -vv --cov=src
+	@if [ -d "venv" ]; then \
+		. venv/bin/activate && python -m pytest tests/ -vv --cov=src; \
+	else \
+		python -m pytest tests/ -vv --cov=src; \
+	fi
 
 test-cli:
 	. venv/bin/activate && \
@@ -17,8 +20,11 @@ test-aws:
 	python -m pytest tests/test_aws_iam.py -vv
 
 lint:
-	. venv/bin/activate && \
-	pylint --disable=R,C,E1120 src/ tests/
+	@if [ -d "venv" ]; then \
+		. venv/bin/activate && pylint --disable=R,C,E1120 src/ tests/; \
+	else \
+		pylint --disable=R,C,E1120 src/ tests/; \
+	fi
 
 lint-cli:
 	. venv/bin/activate && \
@@ -29,8 +35,11 @@ lint-aws:
 	pylint --disable=R,C,E1120 src/aws/
 	
 format:
-	. venv/bin/activate && \
-	black src/ tests/
+	@if [ -d "venv" ]; then \
+		. venv/bin/activate && black src/ tests/; \
+	else \
+		black src/ tests/; \
+	fi
 
 format-cli:
 	. venv/bin/activate && \
