@@ -69,6 +69,22 @@ lambda-test:
 	. venv/bin/activate && \
 	python -c "import sys; sys.path.append('src/cli'); from lambda_function import lambda_handler; print(lambda_handler({'name': 'Test'}, {}))"
 
+cloudwatch-logs:
+	. venv/bin/activate && \
+	python src/aws/cloudwatch_monitor.py --logs
+
+cloudwatch-metrics:
+	. venv/bin/activate && \
+	python src/aws/cloudwatch_monitor.py --metrics
+
+cloudwatch-info:
+	. venv/bin/activate && \
+	python src/aws/cloudwatch_monitor.py --info
+
+cloudwatch-all:
+	. venv/bin/activate && \
+	python src/aws/cloudwatch_monitor.py --info --metrics --logs
+
 clean:
 	rm -rf __pycache__/
 	find . -name "*.pyc" -delete
@@ -93,5 +109,9 @@ help:
 	@echo "  lambda-deploy-auto - Deploy Lambda (auto-find role)"
 	@echo "  lambda-deploy-full  - Deploy Lambda (full with role creation)"
 	@echo "  lambda-test        - Test Lambda function locally"
+	@echo "  cloudwatch-logs    - Show Lambda CloudWatch logs"
+	@echo "  cloudwatch-metrics - Show Lambda CloudWatch metrics"
+	@echo "  cloudwatch-info    - Show Lambda function information"
+	@echo "  cloudwatch-all     - Show all CloudWatch data"
 	@echo "  clean       - Clean up cache files"
 	@echo "  help        - Show this help message"
