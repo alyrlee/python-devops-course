@@ -17,3 +17,14 @@ format:
 	black *.py
 
 all: install lint test
+
+aws-setup:
+	. venv/bin/activate && \
+	python aws_iam_manager.py --create-access-key
+
+aws-test:
+	. venv/bin/activate && \
+	python -m pytest test_aws_iam.py -v
+
+aws-cleanup:
+	@echo "To cleanup AWS resources, run the commands in AWS_IAM_SETUP.md"

@@ -3,3 +3,4 @@ click
 pytest
 pytest-cov
 black
+boto3
