@@ -26,6 +26,12 @@ python-devops-course/
 │   ├── test_aws_iam.py           # AWS IAM manager tests
 │   ├── test_helloclick.py       # Tokenizer tests
 │   └── test_gcli.py              # File search tests
+├── scripts/                      # Deployment and automation scripts
+│   ├── deploy_lambda.py          # Full Lambda deployment with role creation
+│   ├── deploy_lambda_simple.py  # Simplified Lambda deployment
+│   └── deploy_with_role.py       # Lambda deployment with existing role
+├── lambda_packages/              # Lambda deployment packages
+│   └── current-lambda.zip         # Current Lambda function package
 ├── docs/                         # Documentation
 │   └── AWS_IAM_SETUP.md          # AWS setup guide
 ├── notebooks/                    # Jupyter notebooks

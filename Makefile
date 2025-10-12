@@ -53,6 +53,22 @@ aws-test:
 aws-cleanup:
 	@echo "To cleanup AWS resources, run the commands in docs/AWS_IAM_SETUP.md"
 
+lambda-deploy:
+	. venv/bin/activate && \
+	python scripts/deploy_with_role.py
+
+lambda-deploy-auto:
+	. venv/bin/activate && \
+	python scripts/deploy_lambda_simple.py
+
+lambda-deploy-full:
+	. venv/bin/activate && \
+	python scripts/deploy_lambda.py
+
+lambda-test:
+	. venv/bin/activate && \
+	python -c "import sys; sys.path.append('src/cli'); from lambda_function import lambda_handler; print(lambda_handler({'name': 'Test'}, {}))"
+
 clean:
 	rm -rf __pycache__/
 	find . -name "*.pyc" -delete
@@ -73,5 +89,9 @@ help:
 	@echo "  aws-setup   - Setup AWS IAM with access key"
 	@echo "  aws-test    - Test AWS functionality"
 	@echo "  aws-cleanup - Show AWS cleanup instructions"
+	@echo "  lambda-deploy      - Deploy Lambda with Lambda_Service role"
+	@echo "  lambda-deploy-auto - Deploy Lambda (auto-find role)"
+	@echo "  lambda-deploy-full  - Deploy Lambda (full with role creation)"
+	@echo "  lambda-test        - Test Lambda function locally"
 	@echo "  clean       - Clean up cache files"
 	@echo "  help        - Show this help message"
