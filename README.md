@@ -4,6 +4,7 @@
 
 # python-devops
 A repo for a course on Python DevOps
+<!-- Trigger GitHub Actions test -->
 
 ## 🎓 Pragmatic AI Labs | Join 1M+ ML Engineers
 
