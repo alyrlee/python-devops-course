@@ -17,7 +17,8 @@ python-devops-course/
 │   │   ├── helloclick.py         # Tokenizer CLI tool
 │   │   ├── hello-click2.py       # Enhanced CLI with name processing
 │   │   ├── gcli.py               # File search utility
-│   │   └── hello.py              # AWS S3 buckets listing tool
+│   │   ├── hello.py              # AWS S3 buckets listing tool
+│   │   └── lambda_function.py    # AWS Lambda function example
 │   └── utils/                    # Utility functions
 │       ├── magic_stuff.py        # Magic utility functions
 │       └── marco.py              # Marco utility functions
@@ -77,8 +78,8 @@ make help
 
 ### CLI Tools (`src/cli/`)
 - **Hello Click**: Interactive CLI tools with Click framework
-- **Features**: Tokenization, command line interfaces
-- **Examples**: `helloclick.py`, `hello-click2.py`, `gcli.py`
+- **Features**: Tokenization, command line interfaces, AWS integration
+- **Examples**: `helloclick.py`, `hello-click2.py`, `gcli.py`, `hello.py`, `lambda_function.py`
 
 ### Utilities (`src/utils/`)
 - **Magic Functions**: Utility functions and helpers
