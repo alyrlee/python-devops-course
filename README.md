@@ -10,16 +10,32 @@ A comprehensive repository for learning Python DevOps practices with organized p
 
 ```
 python-devops-course/
-├── src/                    # Source code
-│   ├── aws/               # AWS management tools
-│   ├── cli/               # Command line interfaces
-│   └── utils/             # Utility functions
-├── tests/                 # Test suite
-├── docs/                  # Documentation
-├── notebooks/             # Jupyter notebooks
-├── requirements.txt      # Dependencies
-├── Makefile              # Build automation
-└── PROJECT_STRUCTURE.md  # Detailed structure guide
+├── src/                           # Source code
+│   ├── aws/                      # AWS management tools
+│   │   └── aws_iam_manager.py    # Complete AWS IAM role & policy management
+│   ├── cli/                      # Command line interfaces
+│   │   ├── helloclick.py         # Tokenizer CLI tool
+│   │   ├── hello-click2.py       # Enhanced CLI with name processing
+│   │   ├── gcli.py               # File search utility
+│   │   └── hello.py              # AWS S3 buckets listing tool
+│   └── utils/                    # Utility functions
+│       ├── magic_stuff.py        # Magic utility functions
+│       └── marco.py              # Marco utility functions
+├── tests/                        # Test suite
+│   ├── test_aws_iam.py           # AWS IAM manager tests
+│   ├── test_helloclick.py       # Tokenizer tests
+│   └── test_gcli.py              # File search tests
+├── docs/                         # Documentation
+│   └── AWS_IAM_SETUP.md          # AWS setup guide
+├── notebooks/                    # Jupyter notebooks
+│   ├── Python_for_DevOps.ipynb  # Main DevOps notebook
+│   └── Python_for_DevOps-10-07-2021.ipynb # Historical notebook
+├── requirements.txt              # Dependencies (pylint, click, pytest, boto3, ipython, pandas)
+├── Makefile                      # Build automation with 15+ commands
+├── pytest.ini                   # Test configuration
+├── .gitignore                    # Version control exclusions
+├── README.md                     # Project overview
+└── PROJECT_STRUCTURE.md          # Detailed structure guide
 ```
 
 ## 🚀 Quick Start
