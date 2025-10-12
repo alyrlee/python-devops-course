@@ -25,7 +25,7 @@ class AWSIAMManager:
         except NoCredentialsError:
             click.echo(click.style("✗ AWS credentials not found. Please configure AWS credentials.", fg="red"))
             sys.exit(1)
-        except Exception as e:
+        except ClientError as e:
             click.echo(click.style(f"✗ Error initializing AWS IAM Manager: {str(e)}", fg="red"))
             sys.exit(1)
     
@@ -34,13 +34,12 @@ class AWSIAMManager:
         try:
             response = self.sts_client.get_caller_identity()
             return response['Account']
-        except Exception as e:
+        except ClientError as e:
             click.echo(click.style(f"✗ Error getting account ID: {str(e)}", fg="red"))
             sys.exit(1)
     
     def create_cloud9_trust_policy(self) -> dict:
         """Create trust policy for Cloud9 service role"""
-        account_id = self.get_account_id()
         trust_policy = {
             "Version": "2012-10-17",
             "Statement": [
@@ -66,10 +65,13 @@ class AWSIAMManager:
             except ClientError as e:
                 if e.response['Error']['Code'] != 'NoSuchEntity':
                     raise
+            except Exception as e:
+                if 'NoSuchEntity' not in str(e):
+                    raise
             
             # Create the role
             trust_policy = self.create_cloud9_trust_policy()
-            response = self.iam_client.create_role(
+            self.iam_client.create_role(
                 RoleName=role_name,
                 AssumeRolePolicyDocument=json.dumps(trust_policy),
                 Description='Cloud9 service role for development environment',
@@ -111,7 +113,7 @@ class AWSIAMManager:
                         click.echo(click.style(f"✗ Error attaching policy {policy_arn}: {str(e)}", fg="red"))
                         return False
             return True
-        except Exception as e:
+        except ClientError as e:
             click.echo(click.style(f"✗ Error attaching policies: {str(e)}", fg="red"))
             return False
     
@@ -125,6 +127,9 @@ class AWSIAMManager:
                 return True
             except ClientError as e:
                 if e.response['Error']['Code'] != 'NoSuchEntity':
+                    raise
+            except Exception as e:
+                if 'NoSuchEntity' not in str(e):
                     raise
             
             # Create the user
@@ -174,6 +179,9 @@ class AWSIAMManager:
                 return True
             except ClientError as e:
                 if e.response['Error']['Code'] != 'NoSuchEntity':
+                    raise
+            except Exception as e:
+                if 'NoSuchEntity' not in str(e):
                     raise
             
             # Attach the policy
@@ -230,7 +238,7 @@ class AWSIAMManager:
             
             return True
             
-        except Exception as e:
+        except ClientError as e:
             click.echo(click.style(f"✗ Error setting up Cloud9 environment: {str(e)}", fg="red"))
             return False
 

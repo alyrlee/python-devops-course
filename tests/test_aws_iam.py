@@ -5,8 +5,10 @@ Tests the functionality of the AWS IAM role and policy management
 """
 
 import pytest
-import json
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'aws'))
 from aws_iam_manager import AWSIAMManager
 
 

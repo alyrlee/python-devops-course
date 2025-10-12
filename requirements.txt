@@ -5,3 +5,4 @@ pytest-cov
 black
 boto3
 ipython
+pandas

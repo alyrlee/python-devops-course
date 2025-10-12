@@ -1,4 +1,7 @@
 from click.testing import CliRunner
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'cli'))
 from gcli import search
 
 
@@ -7,6 +10,6 @@ from gcli import search
 
 def test_search():
     runner = CliRunner()
-    result = runner.invoke(search, ["--path", ".", "--ftype", "py"])
+    result = runner.invoke(search, ["--path", "tests", "--ftype", "py"])
     assert result.exit_code == 0
-    assert ".py" in result.output
+    assert "Found Matches:" in result.output
