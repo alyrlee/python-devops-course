@@ -31,7 +31,7 @@ python-devops-course/
 │   ├── deploy_lambda_simple.py  # Simplified Lambda deployment
 │   └── deploy_with_role.py       # Lambda deployment with existing role
 ├── lambda_packages/              # Lambda deployment packages
-│   └── current-lambda.zip         # Current Lambda function package
+│   └── python-devops-lambda.zip  # Current deployment package
 ├── docs/                         # Documentation
 │   └── AWS_IAM_SETUP.md          # AWS setup guide
 ├── notebooks/                    # Jupyter notebooks
