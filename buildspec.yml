@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+  pre_build:
+    commands:
+      - echo Installing dependencies...
+      - pip install -r requirements.txt
+  build:
+    commands:
+      - echo Running tests...
+      - make test
+      - echo Running linting...
+      - make lint
+      - echo Building web application...
+      - cd src/web && python -c "import application; print('✅ Web app ready')"
+  post_build:
+    commands:
+      - echo Build completed successfully
+      - echo Creating deployment package...
+      - mkdir -p build-output
+      - cp -r src/web/* build-output/
+      - cp requirements.txt build-output/
+      - echo "web: gunicorn application:app --bind 0.0.0.0:8000" > build-output/Procfile
+
+artifacts:
+  files:
+    - 'build-output/**/*'
+  base-directory: build-output

@@ -85,6 +85,22 @@ cloudwatch-all:
 	. venv/bin/activate && \
 	python src/aws/cloudwatch_monitor.py --info --metrics --logs
 
+web-install:
+	. venv/bin/activate && \
+	pip install flask gunicorn
+
+web-dev:
+	. venv/bin/activate && \
+	cd src/web && python application.py
+
+web-prod:
+	. venv/bin/activate && \
+	cd src/web && gunicorn --bind 0.0.0.0:8000 --workers 4 application:app
+
+web-test:
+	. venv/bin/activate && \
+	curl -f http://localhost:8000/api/health || echo "Web server not running"
+
 clean:
 	rm -rf __pycache__/
 	find . -name "*.pyc" -delete
@@ -113,5 +129,9 @@ help:
 	@echo "  cloudwatch-metrics - Show Lambda CloudWatch metrics"
 	@echo "  cloudwatch-info    - Show Lambda function information"
 	@echo "  cloudwatch-all     - Show all CloudWatch data"
+	@echo "  web-install        - Install Flask and Gunicorn"
+	@echo "  web-dev           - Run web server in development mode"
+	@echo "  web-prod          - Run web server with Gunicorn (production)"
+	@echo "  web-test          - Test web server health"
 	@echo "  clean       - Clean up cache files"
 	@echo "  help        - Show this help message"

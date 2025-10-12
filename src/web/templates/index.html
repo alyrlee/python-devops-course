@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python DevOps Web Interface</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+        .error {
+            background: #ffeaea;
+            border-left: 4px solid #f44336;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐍 Python DevOps</h1>
+            <p>Web Interface for AWS Lambda, CloudWatch, and CLI Tools</p>
+        </div>
+        
+        <div class="content">
+            <div class="grid">
+                <!-- Lambda Function Section -->
+                <div class="section">
+                    <h3>🚀 AWS Lambda Function</h3>
+                    <div class="form-group">
+                        <label for="lambda-name">Name:</label>
+                        <input type="text" id="lambda-name" placeholder="Enter your name" value="Python DevOps">
+                    </div>
+                    <button onclick="callLambda()">Execute Lambda Function</button>
+                    <div id="lambda-result"></div>
+                </div>
+
+                <!-- Tokenizer Section -->
+                <div class="section">
+                    <h3>✂️ Text Tokenizer</h3>
+                    <div class="form-group">
+                        <label for="tokenize-text">Text to tokenize:</label>
+                        <textarea id="tokenize-text" rows="3" placeholder="Enter text to tokenize">Hello World from Python DevOps</textarea>
+                    </div>
+                    <button onclick="tokenizeText()">Tokenize Text</button>
+                    <div id="tokenize-result"></div>
+                </div>
+
+                <!-- CloudWatch Section -->
+                <div class="section">
+                    <h3>📊 CloudWatch Metrics</h3>
+                    <button onclick="getCloudWatchData()">Get CloudWatch Data</button>
+                    <div id="cloudwatch-result"></div>
+                </div>
+
+                <!-- Health Check Section -->
+                <div class="section">
+                    <h3>💚 Health Check</h3>
+                    <button onclick="checkHealth()">Check API Health</button>
+                    <div id="health-result"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${isError ? 'error' : ''}">${content}</div>`;
+        }
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '<div class="loading">Loading...</div>';
+        }
+
+        async function callLambda() {
+            const name = document.getElementById('lambda-name').value;
+            showLoading('lambda-result');
+            
+            try {
+                const response = await fetch('/api/lambda', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('lambda-result', `
+                        <strong>✅ Lambda Function Executed Successfully!</strong><br>
+                        <strong>Response:</strong> ${data.result.body}<br>
+                        <strong>Status Code:</strong> ${data.result.statusCode}
+                    `);
+                } else {
+                    showResult('lambda-result', `
+                        <strong>❌ Error:</strong> ${data.error}<br>
+                        <strong>Message:</strong> ${data.message}
+                    `, true);
+                }
+            } catch (error) {
+                showResult('lambda-result', `<strong>❌ Network Error:</strong> ${error.message}`, true);
+            }
+        }
+
+        async function tokenizeText() {
+            const text = document.getElementById('tokenize-text').value;
+            showLoading('tokenize-result');
+            
+            try {
+                const response = await fetch('/api/tokenize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phrase: text })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('tokenize-result', `
+                        <strong>✅ Text Tokenized Successfully!</strong><br>
+                        <strong>Original:</strong> "${data.original}"<br>
+                        <strong>Tokenized:</strong> [${data.tokenized.join(', ')}]<br>
+                        <strong>Word Count:</strong> ${data.count}
+                    `);
+                } else {
+                    showResult('tokenize-result', `
+                        <strong>❌ Error:</strong> ${data.error}<br>
+                        <strong>Message:</strong> ${data.message}
+                    `, true);
+                }
+            } catch (error) {
+                showResult('tokenize-result', `<strong>❌ Network Error:</strong> ${error.message}`, true);
+            }
+        }
+
+        async function getCloudWatchData() {
+            showLoading('cloudwatch-result');
+            
+            try {
+                const response = await fetch('/api/cloudwatch');
+                const data = await response.json();
+                
+                if (data.success) {
+                    let content = '<strong>✅ CloudWatch Data Retrieved!</strong><br>';
+                    content += `<strong>Function:</strong> ${data.function_info.name}<br>`;
+                    content += `<strong>State:</strong> ${data.function_info.state}<br>`;
+                    content += `<strong>Runtime:</strong> ${data.function_info.runtime}<br>`;
+                    content += `<strong>Invocations:</strong> ${data.metrics.invocations || 0}<br>`;
+                    content += `<strong>Errors:</strong> ${data.metrics.errors || 0}<br>`;
+                    
+                    if (data.recent_logs.length > 0) {
+                        content += '<br><strong>Recent Logs:</strong><br>';
+                        data.recent_logs.forEach(log => {
+                            content += `• ${log.message}<br>`;
+                        });
+                    }
+                    
+                    showResult('cloudwatch-result', content);
+                } else {
+                    showResult('cloudwatch-result', `
+                        <strong>❌ Error:</strong> ${data.error}<br>
+                        <strong>Message:</strong> ${data.message}
+                    `, true);
+                }
+            } catch (error) {
+                showResult('cloudwatch-result', `<strong>❌ Network Error:</strong> ${error.message}`, true);
+            }
+        }
+
+        async function checkHealth() {
+            showLoading('health-result');
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                showResult('health-result', `
+                    <strong>✅ API Health Check Passed!</strong><br>
+                    <strong>Status:</strong> ${data.status}<br>
+                    <strong>Service:</strong> ${data.service}<br>
+                    <strong>Version:</strong> ${data.version}
+                `);
+            } catch (error) {
+                showResult('health-result', `<strong>❌ Health Check Failed:</strong> ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

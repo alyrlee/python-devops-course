@@ -179,6 +179,211 @@ make aws-test
 5. Run linting and formatting
 6. Submit a pull request
 
+## 🚀 AWS CodeBuild & Elastic Beanstalk Deployment
+
+### 📦 AWS CodeBuild Integration
+
+#### **Buildspec Configuration**
+Create `buildspec.yml` in your project root:
+
+```yaml
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+  pre_build:
+    commands:
+      - echo Installing dependencies...
+      - pip install -r requirements.txt
+  build:
+    commands:
+      - echo Running tests...
+      - make test
+      - echo Running linting...
+      - make lint
+      - echo Building web application...
+      - cd src/web && python -c "import application; print('✅ Web app ready')"
+  post_build:
+    commands:
+      - echo Build completed successfully
+artifacts:
+  files:
+    - '**/*'
+  base-directory: .
+```
+
+#### **CodeBuild Setup Commands**
+```bash
+# Create CodeBuild project
+aws codebuild create-project \
+  --name python-devops-build \
+  --source type=GITHUB,location=https://github.com/your-username/python-devops-course \
+  --artifacts type=NO_ARTIFACTS \
+  --environment type=LINUX_CONTAINER,image=aws/codebuild/python:3.11 \
+  --service-role arn:aws:iam::YOUR_ACCOUNT:role/CodeBuildServiceRole
+
+# Start build
+aws codebuild start-build --project-name python-devops-build
+```
+
+### 🌐 Elastic Beanstalk Deployment
+
+#### **1. Create Application Package**
+```bash
+# Create deployment package
+mkdir -p eb-deploy
+cp -r src/web/* eb-deploy/
+cp requirements.txt eb-deploy/
+cp Procfile eb-deploy/
+
+# Create Procfile for Elastic Beanstalk
+echo "web: gunicorn application:app --bind 0.0.0.0:8000" > eb-deploy/Procfile
+
+# Create .ebextensions for configuration
+mkdir -p eb-deploy/.ebextensions
+```
+
+#### **2. Elastic Beanstalk Configuration**
+Create `eb-deploy/.ebextensions/01_packages.config`:
+```yaml
+packages:
+  yum:
+    git: []
+```
+
+Create `eb-deploy/.ebextensions/02_python.config`:
+```yaml
+option_settings:
+  aws:elasticbeanstalk:container:python:
+    WSGIPath: application:app
+  aws:elasticbeanstalk:application:environment:
+    PYTHONPATH: "/var/app/current"
+```
+
+#### **3. Deployment Commands**
+```bash
+# Install EB CLI
+pip install awsebcli
+
+# Initialize Elastic Beanstalk
+eb init python-devops-app
+
+# Create environment
+eb create python-devops-env
+
+# Deploy application
+eb deploy
+
+# Open in browser
+eb open
+```
+
+#### **4. Environment Configuration**
+```bash
+# Set environment variables
+eb setenv AWS_DEFAULT_REGION=us-east-1
+
+# Scale application
+eb scale 2
+
+# View logs
+eb logs
+
+# Terminate environment
+eb terminate
+```
+
+### 🔄 CI/CD Pipeline Integration
+
+#### **GitHub Actions + CodeBuild + Elastic Beanstalk**
+```yaml
+# .github/workflows/deploy-aws.yml
+name: Deploy to AWS
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Deploy to Elastic Beanstalk
+      run: |
+        pip install awsebcli
+        eb deploy python-devops-env
+```
+
+### 📊 Monitoring & Logs
+
+#### **CloudWatch Integration**
+```bash
+# View application logs
+aws logs describe-log-groups --log-group-name-prefix /aws/elasticbeanstalk
+
+# Monitor metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/ElasticBeanstalk \
+  --metric-name ApplicationRequestsTotal \
+  --start-time 2024-01-01T00:00:00Z \
+  --end-time 2024-01-02T00:00:00Z \
+  --period 3600 \
+  --statistics Sum
+```
+
+#### **Health Monitoring**
+```bash
+# Check application health
+eb health
+
+# View detailed health
+eb health --refresh
+
+# Monitor specific instances
+eb status --verbose
+```
+
+### 🛠️ Advanced Configuration
+
+#### **Load Balancer Configuration**
+```yaml
+# .ebextensions/03_loadbalancer.config
+option_settings:
+  aws:elbv2:loadbalancer:
+    IdleTimeout: 60
+  aws:autoscaling:launchconfiguration:
+    InstanceType: t3.micro
+```
+
+#### **Database Integration**
+```yaml
+# .ebextensions/04_database.config
+option_settings:
+  aws:rds:dbinstance:
+    DBInstanceClass: db.t3.micro
+    DBAllocatedStorage: 20
+```
+
+### 📋 Deployment Checklist
+
+- [ ] **CodeBuild**: Build and test automation
+- [ ] **Elastic Beanstalk**: Application deployment
+- [ ] **CloudWatch**: Monitoring and logging
+- [ ] **Load Balancer**: Traffic distribution
+- [ ] **Auto Scaling**: Handle traffic spikes
+- [ ] **Health Checks**: Application monitoring
+- [ ] **SSL/TLS**: Secure connections
+- [ ] **Domain**: Custom domain setup
+
 ## 📄 License
 
 This project is part of the Python DevOps Course.
