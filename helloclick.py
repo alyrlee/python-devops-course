@@ -1,9 +1,5 @@
 import click
 
-# subtle bug that may burn you
-var=[]
-var
-
 
 @click.command()
 @click.option(
