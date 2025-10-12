@@ -10,7 +10,11 @@ import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "aws"))
-from aws_iam_manager import AWSIAMManager
+try:
+    from aws_iam_manager import AWSIAMManager
+except ImportError:
+    # Fallback for pylint static analysis
+    AWSIAMManager = None
 
 
 class TestAWSIAMManager:

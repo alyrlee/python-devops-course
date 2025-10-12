@@ -257,13 +257,13 @@ def main(
             click.echo(f"  Runtime: {function_info['runtime']}")
             click.echo(f"  Last Modified: {function_info['last_modified']}")
 
-        click.echo(click.style(f"\n📈 Quick Metrics:", fg="blue", bold=True))
+        click.echo(click.style("\n📈 Quick Metrics:", fg="blue", bold=True))
         metrics_data = monitor.get_lambda_metrics(function_name, 1)  # Last hour
         if metrics_data:
             click.echo(f"  Recent Invocations: {metrics_data.get('invocations', 0)}")
             click.echo(f"  Recent Errors: {metrics_data.get('errors', 0)}")
 
-        click.echo(click.style(f"\n📝 Recent Logs:", fg="blue", bold=True))
+        click.echo(click.style("\n📝 Recent Logs:", fg="blue", bold=True))
         logs_data = monitor.get_lambda_logs(function_name, 1)  # Last hour
         if logs_data:
             for log in logs_data[:3]:  # Show last 3 logs

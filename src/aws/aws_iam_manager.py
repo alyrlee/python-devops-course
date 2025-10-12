@@ -74,7 +74,7 @@ class AWSIAMManager:
             except ClientError as e:
                 if e.response["Error"]["Code"] != "NoSuchEntity":
                     raise
-            except Exception as e:
+            except (ValueError, KeyError, AttributeError) as e:
                 if "NoSuchEntity" not in str(e):
                     raise
 
@@ -145,7 +145,7 @@ class AWSIAMManager:
             except ClientError as e:
                 if e.response["Error"]["Code"] != "NoSuchEntity":
                     raise
-            except Exception as e:
+            except (ValueError, KeyError, AttributeError) as e:
                 if "NoSuchEntity" not in str(e):
                     raise
 
@@ -194,7 +194,7 @@ class AWSIAMManager:
             except ClientError as e:
                 if e.response["Error"]["Code"] != "NoSuchEntity":
                     raise
-            except Exception as e:
+            except (ValueError, KeyError, AttributeError) as e:
                 if "NoSuchEntity" not in str(e):
                     raise
 

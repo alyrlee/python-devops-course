@@ -3,7 +3,11 @@ import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "cli"))
-from gcli import search
+try:
+    from gcli import search
+except ImportError:
+    # Fallback for pylint static analysis
+    search = None
 
 
 # search(path, ftype):
