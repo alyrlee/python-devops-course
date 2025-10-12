@@ -1,6 +1,4 @@
-import json
-
-def lambda_handler(event, context):
+def lambda_handler(event, _context):
     """
     Basic AWS Lambda function example.
     """
@@ -10,7 +8,4 @@ def lambda_handler(event, context):
     # Log something
     print(f"Greeting generated for: {name}")
 
-    return {
-        "statusCode": 200,
-        "body": message
-    }
+    return {"statusCode": 200, "body": message}
