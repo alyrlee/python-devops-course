@@ -23,7 +23,6 @@ python-devops-course/
 │       ├── magic_stuff.py        # Magic utility functions
 │       └── marco.py              # Marco utility functions
 ├── tests/                        # Test suite
-│   ├── test_aws_iam.py           # AWS IAM manager tests
 │   ├── test_helloclick.py       # Tokenizer tests
 │   └── test_gcli.py              # File search tests
 ├── scripts/                      # Deployment and automation scripts

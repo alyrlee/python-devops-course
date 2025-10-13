@@ -6,6 +6,7 @@ Tests the functionality of the AWS IAM role and policy management
 
 import pytest
 from unittest.mock import Mock, patch
+from botocore.exceptions import ClientError
 import sys
 import os
 
@@ -67,7 +68,10 @@ class TestAWSIAMManager:
         mock_boto_client.side_effect = [mock_iam, mock_sts]
 
         # Mock role doesn't exist
-        mock_iam.get_role.side_effect = Exception("NoSuchEntity")
+        mock_iam.get_role.side_effect = ClientError(
+            {"Error": {"Code": "NoSuchEntity", "Message": "Role not found"}}, 
+            "GetRole"
+        )
         mock_iam.create_role.return_value = {"Role": {"RoleName": "test-role"}}
 
         manager = AWSIAMManager()
@@ -118,7 +122,10 @@ class TestAWSIAMManager:
         mock_boto_client.side_effect = [mock_iam, mock_sts]
 
         # Mock user doesn't exist
-        mock_iam.get_user.side_effect = Exception("NoSuchEntity")
+        mock_iam.get_user.side_effect = ClientError(
+            {"Error": {"Code": "NoSuchEntity", "Message": "User not found"}}, 
+            "GetUser"
+        )
         mock_iam.create_user.return_value = {"User": {"UserName": "test-user"}}
 
         manager = AWSIAMManager()
@@ -152,7 +159,10 @@ class TestAWSIAMManager:
         mock_boto_client.side_effect = [mock_iam, mock_sts]
 
         # Mock policy doesn't exist
-        mock_iam.get_user_policy.side_effect = Exception("NoSuchEntity")
+        mock_iam.get_user_policy.side_effect = ClientError(
+            {"Error": {"Code": "NoSuchEntity", "Message": "Policy not found"}}, 
+            "GetUserPolicy"
+        )
         mock_iam.put_user_policy.return_value = {}
 
         manager = AWSIAMManager()
