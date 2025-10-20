@@ -17,8 +17,9 @@ on:
       AWS_ROLE_ARN:
         required: true
 
+# Per-environment concurrency: Serialize deployments to prevent stampeding
 concurrency:
-  group: deploy-${{ inputs.environment }}
+  group: deploy-${{ inputs.environment }}-${{ github.ref }}
   cancel-in-progress: false  # serialize per env if multiple callers race
 
 permissions:

@@ -1,6 +1,11 @@
 ---
 name: CI Orchestrator
 
+# Global concurrency: Cancel superseded pushes to prevent resource waste
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on: 
   push:
     branches: [main, dev]
@@ -22,10 +27,6 @@ on:
         required: false
         default: false
         type: boolean
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
