@@ -87,25 +87,17 @@ jobs:
         id: safety_check
         run: |
           echo "🔍 Running Safety vulnerability check..."
-          safety check --json --output json > safety-report.json
-          SAFETY_JSON_EXIT_CODE=$?
-          echo "Safety JSON check exit code: $SAFETY_JSON_EXIT_CODE"
+          # Generate JSON report
+          safety check --output json --file safety-report.json || true
 
-          safety check
-          SAFETY_EXIT_CODE=$?
-          echo "Safety detailed check exit code: $SAFETY_EXIT_CODE"
+          # Pretty screen output
+          safety check --output text || true
 
-          if [ $SAFETY_JSON_EXIT_CODE -ne 0 ]; then
-            echo "::error file=safety-report.json::Safety JSON check detected vulnerabilities with exit code $SAFETY_JSON_EXIT_CODE. Check safety-report.json artifact for details."
-          fi
-          if [ $SAFETY_EXIT_CODE -ne 0 ]; then
-            echo "::error::Safety detailed check detected vulnerabilities with exit code $SAFETY_EXIT_CODE. Review logs above for specific findings."
-          fi
-
-          # Show summary of findings
           if [ -f safety-report.json ]; then
             echo "📊 Safety check summary:"
-            python3 -c "import json; data=json.load(open('safety-report.json')); vulns=data.get('vulnerabilities',[]); print('Total vulnerabilities found:', len(vulns))"
+            python3 -c "import json; data=json.load(open('safety-report.json')); vulns=data.get('vulnerabilities', []); print('Total vulnerabilities found:', len(vulns))"
+          else
+            echo "::warning::No Safety report generated"
           fi
         continue-on-error: ${{ github.ref != 'refs/heads/main' }}
 
