@@ -83,6 +83,80 @@ make aws-setup
 make help
 ```
 
+## 🚀 Deployment Dashboard
+
+A modern, responsive web interface for monitoring deployment status across all environments in real-time.
+
+### 📊 Dashboard Features
+
+- **Real-time Status Monitoring**: Visual status indicators for all environments (ephemeral, dev, staging, prod)
+- **Color-coded Environment Cards**: Green (success), Red (failure), Yellow (pending)
+- **Detailed Deployment Information**: Region, last deployed time, duration, commit hash
+- **Summary Statistics**: Overview of successful, failed, and pending deployments
+- **Responsive Design**: Works on desktop and mobile devices
+- **RESTful API**: Complete API for deployment status management
+
+### 🎯 Dashboard UI Example
+
+![Deployment Dashboard](https://github.com/alyrlee/python-devops-course/assets/deployment-dashboard-screenshot.png)
+
+*The dashboard shows real-time deployment status with color-coded environment cards, detailed deployment information, and summary statistics.*
+
+### 🚀 Quick Start
+
+```bash
+# Install dependencies
+pip install flask
+
+# Run the dashboard
+python run_dashboard.py
+
+# Access the dashboard
+open http://localhost:5001
+```
+
+### 🔗 API Endpoints
+
+- **`GET /`** - Main dashboard interface
+- **`GET /api/deployments`** - All deployment statuses
+- **`GET /api/deployments/<env>`** - Specific environment status
+- **`POST /api/deployments/<env>/status`** - Update environment status
+- **`GET /api/health`** - Health check
+- **`GET /api/summary`** - Deployment summary statistics
+
+### 📱 Dashboard Components
+
+#### Environment Cards
+Each environment displays:
+- Environment name and status badge
+- AWS region and deployment details
+- Last deployment timestamp
+- Deployment duration and commit hash
+- Direct link to environment URL
+
+#### Summary Statistics
+- Total deployments across all environments
+- Successful deployment count
+- Failed deployment count  
+- Pending deployment count
+
+#### Interactive Features
+- Refresh button for real-time updates
+- Last updated timestamp
+- Responsive grid layout
+- Smooth animations and transitions
+
+### 🔧 Integration with CI/CD
+
+The dashboard integrates seamlessly with the CI/CD pipeline:
+
+1. **Automatic Status Updates**: Deployment jobs update status via API
+2. **Real-time Monitoring**: View deployment progress across environments
+3. **Failure Detection**: Immediate visual feedback on deployment failures
+4. **Environment Tracking**: Monitor deployment history and performance
+
+For detailed documentation, see [DEPLOYMENT_DASHBOARD.md](DEPLOYMENT_DASHBOARD.md).
+
 ## 🛠️ Available Commands
 
 | Command | Description |
