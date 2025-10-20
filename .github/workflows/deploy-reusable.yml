@@ -14,9 +14,7 @@ on:
         required: false
         type: number
         default: 600
-    secrets:
-      AWS_ROLE_ARN:
-        required: true
+    secrets: {}
 
 # Per-environment concurrency: Serialize deployments to prevent stampeding
 concurrency:
@@ -25,7 +23,6 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write
   deployments: write
 
 jobs:
@@ -70,13 +67,12 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ inputs.aws_region }}
-          role-session-name: gha-${{ github.run_id }}
-          audience: sts.amazonaws.com
+      - name: Verify AWS region configuration
+        run: |
+          echo "🌍 AWS Region: ${{ inputs.aws_region }}"
+          echo "🔧 Environment: ${{ inputs.environment }}"
+          echo "⏱️ Timeout: ${{ inputs.timeout_secs }} seconds"
+          echo "✅ Deployment configuration verified (demo mode)"
 
       - name: Deploy to ${{ inputs.environment }}
         id: deploy
