@@ -11,8 +11,9 @@ on:
         required: true
         type: string
       timeout_secs:
-        required: true
+        required: false
         type: number
+        default: 600
     secrets:
       AWS_ROLE_ARN:
         required: true
@@ -31,7 +32,7 @@ jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ inputs.timeout_secs / 60 }}
+    timeout-minutes: ${{ (inputs.timeout_secs || 600) / 60 }}
     environment:
       name: ${{ inputs.environment }}
       url: ${{ steps.expose.outputs.env_url || '' }}  # shows on Env page
