@@ -108,10 +108,10 @@ jobs:
         run: |
           pip install bandit semgrep "safety>=3,<4"
 
-      - name: Bandit (SARIF)
+      - name: Bandit (JSON)
         run: |
           echo "🔍 Running Bandit security scan..."
-          bandit -r src -f sarif -o bandit.sarif || true
+          bandit -r src -f json -o bandit.json || true
 
       - name: Semgrep (SARIF)
         run: |
@@ -136,7 +136,7 @@ jobs:
         with:
           name: security-reports
           path: |
-            bandit.sarif
+            bandit.json
             semgrep.sarif
             safety-report.json
           retention-days: 7
@@ -147,11 +147,11 @@ jobs:
         run: |
           echo "### 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
           
-          if [ -f bandit.sarif ]; then
-            BANDIT_ISSUES=$(python3 -c "import json; data=json.load(open('bandit.sarif')); print(len(data.get('runs', [{}])[0].get('results', [])))" 2>/dev/null || echo "0")
+          if [ -f bandit.json ]; then
+            BANDIT_ISSUES=$(python3 -c "import json; data=json.load(open('bandit.json')); print(len(data.get('results', [])))" 2>/dev/null || echo "0")
             echo "- 🔍 **Bandit**: $BANDIT_ISSUES security issues found" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- 🔍 **Bandit**: No SARIF report generated" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔍 **Bandit**: No JSON report generated" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ -f semgrep.sarif ]; then
