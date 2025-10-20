@@ -181,7 +181,21 @@ For detailed documentation, see [DEPLOYMENT_DASHBOARD.md](DEPLOYMENT_DASHBOARD.m
 ### CLI Tools (`src/cli/`)
 - **Hello Click**: Interactive CLI tools with Click framework
 - **Features**: Tokenization, command line interfaces, AWS integration
-- **Examples**: `helloclick.py`, `hello-click2.py`, `gcli.py`, `hello.py`, `lambda_function.py`
+- **Examples**: 
+  - `helloclick.py` - Text tokenization CLI tool
+  - `gcli.py` - File search utility with glob patterns
+  - `hello.py` - AWS S3 buckets listing tool
+  - `hello-click2.py` - Enhanced CLI with name processing
+  - `lambda_function.py` - AWS Lambda function example
+
+### Web Application (`src/web/`)
+- **Flask Application**: Modern web application with deployment dashboard
+- **Features**: Real-time deployment monitoring, RESTful API, responsive UI
+- **Components**:
+  - `application.py` - Main Flask web application
+  - `deployment_api.py` - Deployment dashboard API server
+  - `templates/` - HTML templates for web interface
+  - `templates/deployment-dashboard.html` - Modern deployment dashboard UI
 
 ### Utilities (`src/utils/`)
 - **Magic Functions**: Utility functions and helpers

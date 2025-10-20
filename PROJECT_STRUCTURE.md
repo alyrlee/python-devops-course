@@ -24,19 +24,27 @@ python-devops-course/
 │   │   └── cloudwatch_monitor.py # CloudWatch monitoring utilities
 │   ├── cli/                     # Command line interface module
 │   │   ├── __init__.py          # CLI package initialization
-│   │   └── gcli.py              # General CLI utilities
+│   │   ├── helloclick.py        # Tokenizer CLI tool
+│   │   ├── gcli.py              # File search CLI utility
+│   │   ├── hello.py             # AWS S3 buckets listing tool
+│   │   ├── hello-click2.py      # Enhanced CLI with name processing
+│   │   └── lambda_function.py   # AWS Lambda function example
 │   ├── utils/                   # Utility functions module
 │   │   └── __init__.py          # Utils package initialization
 │   └── web/                     # Web application module
 │       ├── __init__.py          # Web package initialization
 │       ├── application.py       # Flask web application
+│       ├── deployment_api.py    # Deployment dashboard API
 │       └── templates/           # HTML templates
-│           └── index.html       # Main web page
+│           ├── index.html       # Main web page
+│           └── deployment-dashboard.html # Deployment dashboard UI
 ├── tests/                       # Test suite directory
 │   ├── __init__.py              # Test package initialization
 │   ├── test_aws_iam.py          # AWS IAM manager tests
 │   ├── test_helloclick.py       # Hello Click tests
-│   └── test_gcli.py             # General CLI tests
+│   ├── test_gcli.py             # General CLI tests
+│   ├── test_integration.py      # Integration tests
+│   └── test_e2e.py              # End-to-end tests
 ├── scripts/                     # Deployment and automation scripts
 │   ├── deploy_lambda.py         # Full Lambda deployment with role creation
 │   ├── deploy_lambda_simple.py  # Simplified Lambda deployment
@@ -56,12 +64,39 @@ python-devops-course/
 ├── venv/                        # Virtual environment (not tracked)
 ├── __pycache__/                 # Python cache (not tracked)
 ├── requirements.txt             # Python dependencies
+├── pyproject.toml               # Modern Python project configuration
+├── pytest.ini                  # Test configuration
 ├── buildspec.yml                # AWS CodeBuild configuration
 ├── Makefile                     # Build and automation commands
-├── pytest.ini                  # Test configuration
+├── run_dashboard.py             # Deployment dashboard runner
+├── DEPLOYMENT_DASHBOARD.md      # Deployment dashboard documentation
 ├── README.md                    # Project overview
 └── PROJECT_STRUCTURE.md        # This file
 ```
+
+## 🚀 Deployment Dashboard
+
+### Modern Web Interface
+- **Real-time Monitoring**: Visual status indicators for all environments
+- **Color-coded Cards**: Green (success), Red (failure), Yellow (pending)
+- **Detailed Information**: Region, deployment time, duration, commit hash
+- **Summary Statistics**: Overview of successful, failed, and pending deployments
+- **RESTful API**: Complete API for deployment status management
+- **Responsive Design**: Works on desktop and mobile devices
+
+### Dashboard Components
+- **Flask API Server** (`src/web/deployment_api.py`): RESTful endpoints for deployment data
+- **HTML Template** (`src/web/templates/deployment-dashboard.html`): Modern responsive UI
+- **Dashboard Runner** (`run_dashboard.py`): Simple script to start the dashboard
+- **Documentation** (`DEPLOYMENT_DASHBOARD.md`): Comprehensive usage guide
+
+### API Endpoints
+- **`GET /`** - Main dashboard interface
+- **`GET /api/deployments`** - All deployment statuses
+- **`GET /api/deployments/<env>`** - Specific environment status
+- **`POST /api/deployments/<env>/status`** - Update environment status
+- **`GET /api/health`** - Health check
+- **`GET /api/summary`** - Deployment summary statistics
 
 ## 🚀 Enhanced CI/CD Pipeline
 
@@ -140,6 +175,10 @@ python-devops-course/
 - **Smart Retention**: 7-day artifact cleanup
 
 ### Test Strategies
+- **Unit Tests**: Individual component testing with pytest
+- **Integration Tests**: Component interaction testing with `@pytest.mark.integration`
+- **End-to-End Tests**: Complete workflow testing with `@pytest.mark.e2e`
+- **Parallel Execution**: pytest-xdist for faster test execution
 - **PR Testing**: Fast feedback with `--maxfail=1`
 - **Main Testing**: Comprehensive testing with `--maxfail=0`
 - **Environment-Specific**: Different strategies per environment
@@ -226,9 +265,10 @@ make lambda-deploy
 
 ### Development
 - **Virtual Environment**: Always use `venv/` for dependencies
-- **Testing**: Parallel execution with conditional strategies
+- **Modern Configuration**: `pyproject.toml` for project metadata and build configuration
+- **Testing**: Unit, integration, and e2e tests with pytest markers
 - **Linting**: Ruff for speed, pylint for comprehensive analysis
-- **Formatting**: Consistent code formatting
+- **Formatting**: Consistent code formatting with black and isort
 
 ### Deployment
 - **Environment Management**: GitHub Environments for approvals
@@ -313,10 +353,12 @@ gh run view
 ## 📚 Documentation
 
 - **Project Structure**: This file (`PROJECT_STRUCTURE.md`)
+- **Deployment Dashboard**: `DEPLOYMENT_DASHBOARD.md` - Complete dashboard usage guide
 - **AWS Setup**: `docs/AWS_IAM_SETUP.md`
 - **Workflow Documentation**: `.github/workflows/` directory
 - **Composite Actions**: `.github/actions/` directory
-- **Notebooks**: `notebooks/` directory for learning
+- **API Documentation**: Built-in Flask API documentation
+- **Test Documentation**: pytest markers and test organization
 
 ## 🔄 Maintenance
 
