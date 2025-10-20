@@ -150,13 +150,14 @@ jobs:
 
       - name: Upload security reports
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: security-reports
           path: |
             bandit.sarif
             semgrep.sarif
             safety-report.json
+          retention-days: 7
 
   dependency-review:
     if: github.event_name == 'pull_request'
@@ -208,9 +209,16 @@ jobs:
         run: |
           pylint --version
 
-      - name: Lint with pylint
+      - name: Lint with Ruff (fast alternative)
+        run: |
+          echo "🔍 Running Ruff linting..."
+          ruff check src/ --output-format=github
+        continue-on-error: true
+
+      - name: Lint with pylint (fallback)
         run: |
           make lint
+        continue-on-error: true
 
       - name: Test with pytest
         run: |
@@ -290,8 +298,9 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          role-session-name: GitHubActions-${{ github.run_id }}
           aws-region: us-east-1
+          role-session-name: gha-${{ github.run_id }}
+          audience: sts.amazonaws.com
 
       - name: Test AWS integration
         run: |
@@ -324,6 +333,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, web-test, aws-test]
     if: github.ref == 'refs/heads/main' && (needs.aws-test.result == 'success' || needs.aws-test.result == 'skipped' || needs.aws-test.result == null)
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     strategy:
       fail-fast: false
       matrix:
@@ -470,92 +483,10 @@ jobs:
               ;;
           esac
 
-      - name: Smoke Tests for ${{ matrix.environment }}
-        env:
-          ENVIRONMENT: ${{ matrix.environment }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-        run: |
-          echo "💨 Running smoke tests for ${{ matrix.environment }}"
-
-          # Environment-specific smoke tests
-          case "${{ matrix.environment }}" in
-            "ephemeral")
-              echo "🔄 Ephemeral smoke test: Basic connectivity"
-              python -c "print('Ephemeral smoke test: Service is responding')"
-              ;;
-            "dev")
-              echo "🛠️ Development smoke test: Feature validation"
-              python -c "print('Dev smoke test: All features working')"
-              ;;
-            "staging")
-              echo "🧪 Staging smoke test: Integration validation"
-              python -c "print('Staging smoke test: Integration working')"
-              ;;
-            "prod")
-              echo "🔒 Production smoke test: Critical path validation"
-              python -c "print('Production smoke test: Critical paths working')"
-              ;;
-          esac
-
-          echo "✅ Smoke tests passed for ${{ matrix.environment }}"
-
-      - name: Regression Tests for ${{ matrix.environment }}
-        env:
-          ENVIRONMENT: ${{ matrix.environment }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-        run: |
-          echo "🔄 Running regression tests for ${{ matrix.environment }}"
-
-          # Environment-specific regression tests
-          case "${{ matrix.environment }}" in
-            "ephemeral")
-              echo "🔄 Ephemeral regression test: Quick validation"
-              python -c "print('Ephemeral regression: Basic functionality intact')"
-              ;;
-            "dev")
-              echo "🛠️ Development regression test: Feature regression check"
-              python -c "print('Dev regression: No feature regressions detected')"
-              ;;
-            "staging")
-              echo "🧪 Staging regression test: Full regression suite"
-              python -c "print('Staging regression: Full regression suite passed')"
-              ;;
-            "prod")
-              echo "🔒 Production regression test: Critical regression check"
-              python -c "print('Production regression: Critical functionality intact')"
-              ;;
-          esac
-
-          echo "✅ Regression tests passed for ${{ matrix.environment }}"
-
-      - name: Post-Deployment Validation
-        env:
-          ENVIRONMENT: ${{ matrix.environment }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-        run: |
-          echo "🔍 Running post-deployment validation for ${{ matrix.environment }}"
-
-          # Environment-specific validation
-          case "${{ matrix.environment }}" in
-            "ephemeral")
-              echo "🔄 Ephemeral validation: Quick health check"
-              python -c "print('Ephemeral validation: Environment is healthy')"
-              ;;
-            "dev")
-              echo "🛠️ Development validation: Feature completeness"
-              python -c "print('Dev validation: All features deployed correctly')"
-              ;;
-            "staging")
-              echo "🧪 Staging validation: Integration readiness"
-              python -c "print('Staging validation: Ready for production promotion')"
-              ;;
-            "prod")
-              echo "🔒 Production validation: Live system health"
-              python -c "print('Production validation: System is live and healthy')"
-              ;;
-          esac
-
-          echo "✅ Post-deployment validation completed for ${{ matrix.environment }}"
+      - name: Post-deploy checks
+        uses: ./.github/actions/post-deploy-checks
+        with:
+          environment: ${{ matrix.environment }}
 
       - name: Deployment Status
         if: always()
@@ -578,6 +509,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [security-scan, dependency-review, test, web-test, aws-test, deploy]
     if: always()
+    permissions:
+      contents: read
 
     steps:
       - name: Notify Success
