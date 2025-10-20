@@ -32,7 +32,7 @@ jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ (inputs.timeout_secs || 600) / 60 }}
+    timeout-minutes: 20
     environment:
       name: ${{ inputs.environment }}
       url: ${{ steps.expose.outputs.env_url || '' }}  # shows on Env page
