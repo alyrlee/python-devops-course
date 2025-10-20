@@ -82,88 +82,55 @@ jobs:
 
   # —— Early environments (parallel deployment) ——
   deploy-early:
-    name: Deploy Early Environments
     needs: build
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        environment: [ephemeral, dev]
-    steps:
-      - name: Deploy to ${{ matrix.environment }}
-        uses: ./.github/workflows/deploy-reusable.yml
-        with:
-          environment: ${{ matrix.environment }}
-          aws_region: us-east-1
-          timeout_secs: ${{ matrix.environment == 'ephemeral' && 300 || 600 }}
-        secrets: inherit
+        include:
+          - { environment: ephemeral, aws_region: us-east-1, timeout_secs: 300 }
+          - { environment: dev, aws_region: us-east-1, timeout_secs: 600 }
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: ${{ matrix.environment }}
+      aws_region: ${{ matrix.aws_region }}
+      timeout_secs: ${{ matrix.timeout_secs }}
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
   # —— Staging deployment (sequential) ——
   deploy-staging:
-    name: Deploy to Staging
     needs: deploy-early
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to staging
-        uses: ./.github/workflows/deploy-reusable.yml
-        with:
-          environment: staging
-          aws_region: us-east-1
-          timeout_secs: 900
-        secrets: inherit
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: staging
+      aws_region: us-east-1
+      timeout_secs: 900
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
   # —— Production deployment (sequential with protection) ——
   deploy-prod:
-    name: Deploy to Production
     needs: deploy-staging
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to production
-        uses: ./.github/workflows/deploy-reusable.yml
-        with:
-          environment: prod
-          aws_region: us-west-2
-          timeout_secs: 1200
-        secrets: inherit
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: prod
+      aws_region: us-west-2
+      timeout_secs: 1200
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
   # —— Deployment Summary ——
   notify:
-    name: Deployment Summary
     if: always()
     needs: [build, deploy-early, deploy-staging, deploy-prod]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
     steps:
       - name: Deployment Summary
-        if: always()
         run: |
-          echo "### 🚀 Deployment Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment | Status | Region | URL |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------------|--------|--------|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| **ephemeral** | ${{ needs.deploy-early.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://ephemeral.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **dev** | ${{ needs.deploy-early.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://dev.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **staging** | ${{ needs.deploy-staging.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://staging.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **prod** | ${{ needs.deploy-prod.result == 'success' && '✅ Success' || '❌ Failed' }} | us-west-2 | https://prod.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📊 Pipeline Results" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Early Deployments**: ${{ needs.deploy-early.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Staging Deployment**: ${{ needs.deploy-staging.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Production Deployment**: ${{ needs.deploy-prod.result }}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Notify Success
-        if: ${{ needs.deploy-prod.result == 'success' }}
-        run: |
-          echo "### 🎉 Deployment Pipeline Completed Successfully!" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ All environments deployed successfully" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Production deployment completed" >> $GITHUB_STEP_SUMMARY
-
-      - name: Notify Failure
-        if: ${{ needs.deploy-prod.result == 'failure' || needs.deploy-staging.result == 'failure' || needs.deploy-early.result == 'failure' }}
-        run: |
-          echo "### ❌ Deployment Pipeline Failed" >> $GITHUB_STEP_SUMMARY
-          echo "- ❌ Some deployments failed - check logs for details" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔍 Check individual environment status above" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### 🚀 Ship Summary"
+            echo "- **Build**: ${{ needs.build.result }}"
+            echo "- **Early Deployments**: ${{ needs.deploy-early.result }}"
+            echo "- **Staging**: ${{ needs.deploy-staging.result }}"
+            echo "- **Production**: ${{ needs.deploy-prod.result }}"
+          } >> "$GITHUB_STEP_SUMMARY"

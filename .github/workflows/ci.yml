@@ -413,7 +413,7 @@ jobs:
   aws-integration:
     name: AWS Integration Test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-    needs: [build, test]  # gate on unit tests only
+    needs: [build, test-unit]  # gate on unit tests only
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -459,40 +459,54 @@ jobs:
           echo "- ✅ AWS integration test completed" >> $GITHUB_STEP_SUMMARY
 
   # —— Environment-level fan-out with reusable workflows ——
-  deploy-all:
-    name: Deploy to environments (parallel)
+  deploy-ephemeral:
+    name: Deploy to ephemeral
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-    needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test, aws-integration]
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 3  # cap if your cloud has limits
-      matrix:
-        include:
-          - environment: ephemeral
-            aws_region: us-east-1
-            timeout_secs: 300
-          - environment: dev
-            aws_region: us-east-1
-            timeout_secs: 600
-          - environment: staging
-            aws_region: us-east-1
-            timeout_secs: 900
-          - environment: prod
-            aws_region: us-west-2
-            timeout_secs: 1200
-    steps:
-      - name: Call reusable deploy
-        uses: ./.github/workflows/deploy-reusable.yml
-        with:
-          environment: ${{ matrix.environment }}
-          aws_region: ${{ matrix.aws_region }}
-          timeout_secs: ${{ matrix.timeout_secs }}
-        secrets: inherit
+    needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test]
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: ephemeral
+      aws_region: us-east-1
+      timeout_secs: 300
+    secrets: inherit
+
+  deploy-dev:
+    name: Deploy to dev
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test]
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: dev
+      aws_region: us-east-1
+      timeout_secs: 600
+    secrets: inherit
+
+  deploy-staging:
+    name: Deploy to staging
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test]
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: staging
+      aws_region: us-east-1
+      timeout_secs: 900
+    secrets: inherit
+
+  deploy-prod:
+    name: Deploy to prod
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test]
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: prod
+      aws_region: us-west-2
+      timeout_secs: 1200
+    secrets: inherit
 
   notify:
     name: Notify Results
     if: always()
-    needs: [build, security, test-unit, test-integration, test-e2e, test-lint, web-test, aws-integration, deploy-all]
+    needs: [build, security, test-unit, test-integration, test-e2e, test-lint, web-test, aws-integration, deploy-ephemeral, deploy-dev, deploy-staging, deploy-prod]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -505,10 +519,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Environment | Status | Region | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|-------------|--------|--------|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| **ephemeral** | ${{ needs.deploy-all.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://ephemeral.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **dev** | ${{ needs.deploy-all.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://dev.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **staging** | ${{ needs.deploy-all.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://staging.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **prod** | ${{ needs.deploy-all.result == 'success' && '✅ Success' || '❌ Failed' }} | us-west-2 | https://prod.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **ephemeral** | ${{ needs.deploy-ephemeral.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://ephemeral.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **dev** | ${{ needs.deploy-dev.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://dev.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **staging** | ${{ needs.deploy-staging.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://staging.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **prod** | ${{ needs.deploy-prod.result == 'success' && '✅ Success' || '❌ Failed' }} | us-west-2 | https://prod.example.com |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Build**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
@@ -518,11 +532,11 @@ jobs:
           echo "- **E2E Tests**: ${{ needs.test-e2e.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Linting**: ${{ needs.test-lint.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Web Tests**: ${{ needs.web-test.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **AWS Integration**: ${{ needs.aws-integration.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployments**: ${{ needs.deploy-all.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AWS Integration**: ${{ needs.aws-integration.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployments**: Ephemeral: ${{ needs.deploy-ephemeral.result }}, Dev: ${{ needs.deploy-dev.result }}, Staging: ${{ needs.deploy-staging.result }}, Prod: ${{ needs.deploy-prod.result }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify Success
-        if: ${{ needs.deploy-all.result == 'success' }}
+        if: ${{ needs.deploy-ephemeral.result == 'success' && needs.deploy-dev.result == 'success' && needs.deploy-staging.result == 'success' && needs.deploy-prod.result == 'success' }}
         run: |
           echo "### 🎉 CI/CD Pipeline Completed Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ All unit tests passed" >> $GITHUB_STEP_SUMMARY
@@ -533,7 +547,7 @@ jobs:
           echo "- ✅ All environments deployed successfully" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify Failure
-        if: ${{ needs.deploy-all.result == 'failure' || needs.test-unit.result == 'failure' || needs.test-integration.result == 'failure' || needs.test-e2e.result == 'failure' || needs.test-lint.result == 'failure' || needs.security.result == 'failure' }}
+        if: ${{ needs.deploy-ephemeral.result == 'failure' || needs.deploy-dev.result == 'failure' || needs.deploy-staging.result == 'failure' || needs.deploy-prod.result == 'failure' || needs.test-unit.result == 'failure' || needs.test-integration.result == 'failure' || needs.test-e2e.result == 'failure' || needs.test-lint.result == 'failure' || needs.security.result == 'failure' }}
         run: |
           echo "### ❌ CI/CD Pipeline Failed" >> $GITHUB_STEP_SUMMARY
           echo "- ❌ Some jobs failed - check logs for details" >> $GITHUB_STEP_SUMMARY
