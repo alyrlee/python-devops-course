@@ -80,30 +80,39 @@ jobs:
           echo "- ✅ Package artifacts built successfully" >> $GITHUB_STEP_SUMMARY
           echo "- 📦 Artifacts uploaded for deployment" >> $GITHUB_STEP_SUMMARY
 
-  # —— Early environments (parallel deployment) ——
-  deploy-early:
+  # —— Ephemeral deployment (first) ——
+  deploy-ephemeral:
     needs: build
     permissions:
       contents: read
       id-token: write
       deployments: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { environment: ephemeral, aws_region: us-east-1, timeout_secs: 300 }
-          - { environment: dev, aws_region: us-east-1, timeout_secs: 600 }
     uses: ./.github/workflows/deploy-reusable.yml
     with:
-      environment: ${{ matrix.environment }}
-      aws_region: ${{ matrix.aws_region }}
-      timeout_secs: ${{ matrix.timeout_secs }}
+      environment: ephemeral
+      aws_region: us-east-1
+      timeout_secs: 300
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+
+  # —— Dev deployment (after ephemeral) ——
+  deploy-dev:
+    needs: deploy-ephemeral
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: dev
+      aws_region: us-east-1
+      timeout_secs: 600
     secrets:
       AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
   # —— Staging deployment (sequential) ——
   deploy-staging:
-    needs: deploy-early
+    needs: deploy-dev
     permissions:
       contents: read
       id-token: write
@@ -134,7 +143,7 @@ jobs:
   # —— Deployment Summary ——
   notify:
     if: always()
-    needs: [build, deploy-early, deploy-staging, deploy-prod]
+    needs: [build, deploy-ephemeral, deploy-dev, deploy-staging, deploy-prod]
     runs-on: ubuntu-latest
     steps:
       - name: Deployment Summary
@@ -142,7 +151,8 @@ jobs:
           {
             echo "### 🚀 Ship Summary"
             echo "- **Build**: ${{ needs.build.result }}"
-            echo "- **Early Deployments**: ${{ needs.deploy-early.result }}"
+            echo "- **Ephemeral**: ${{ needs.deploy-ephemeral.result }}"
+            echo "- **Dev**: ${{ needs.deploy-dev.result }}"
             echo "- **Staging**: ${{ needs.deploy-staging.result }}"
             echo "- **Production**: ${{ needs.deploy-prod.result }}"
           } >> "$GITHUB_STEP_SUMMARY"
