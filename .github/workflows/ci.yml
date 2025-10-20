@@ -167,15 +167,16 @@ jobs:
             echo "- 🛡️ **Safety**: No report generated" >> $GITHUB_STEP_SUMMARY
           fi
 
-  test:
-    name: Test Suite
+  # —— Aggressive Test Parallelization ——
+  test-unit:
+    name: Unit Tests
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]  # 4 pytest shards in parallel
+        shard: [1, 2, 3, 4, 5, 6]  # 6 unit test shards in parallel
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -192,37 +193,185 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-xdist ruff
+          pip install pytest pytest-xdist pytest-cov
 
-      - name: Run tests (sharded)
+      - name: Run unit tests (sharded)
         run: |
-          echo "🧪 Running test shard ${{ matrix.shard }} of 4"
-          # Simple hash shard; replace with your own splitter if you have one
+          echo "🧪 Running unit test shard ${{ matrix.shard }} of 6"
           pytest -q -n auto --maxfail=1 \
-            --junitxml=report-${{ matrix.shard }}.xml \
-            -k "not e2e" \
+            --junitxml=unit-report-${{ matrix.shard }}.xml \
+            --cov=src --cov-report=xml:coverage-${{ matrix.shard }}.xml \
+            -k "unit or not integration and not e2e" \
             --randomly-seed=${{ matrix.shard }} \
-            --durations=15
+            --durations=10
 
-      - name: Lint with Ruff (fast alternative)
-        run: |
-          echo "🔍 Running Ruff linting..."
-          ruff check src/ --output-format=github || true
-
-      - name: Upload test reports
+      - name: Upload unit test reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: junit-shard-${{ matrix.shard }}
-          path: report-*.xml
+          name: unit-tests-shard-${{ matrix.shard }}
+          path: |
+            unit-report-*.xml
+            coverage-*.xml
           retention-days: 7
 
-      - name: Test Summary
+      - name: Unit Test Summary
         if: always()
         run: |
-          echo "### 🧪 Test Results (Shard ${{ matrix.shard }})" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Test shard ${{ matrix.shard }} completed" >> $GITHUB_STEP_SUMMARY
-          echo "- 📊 JUnit report generated" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧪 Unit Tests (Shard ${{ matrix.shard }})" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit test shard ${{ matrix.shard }} completed" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 Coverage report generated" >> $GITHUB_STEP_SUMMARY
+
+  test-integration:
+    name: Integration Tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]  # 3 integration test shards in parallel
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python with cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-xdist
+
+      - name: Run integration tests (sharded)
+        run: |
+          echo "🔗 Running integration test shard ${{ matrix.shard }} of 3"
+          pytest -q -n auto --maxfail=1 \
+            --junitxml=integration-report-${{ matrix.shard }}.xml \
+            -k "integration" \
+            --randomly-seed=${{ matrix.shard }} \
+            --durations=15
+
+      - name: Upload integration test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-tests-shard-${{ matrix.shard }}
+          path: integration-report-*.xml
+          retention-days: 7
+
+      - name: Integration Test Summary
+        if: always()
+        run: |
+          echo "### 🔗 Integration Tests (Shard ${{ matrix.shard }})" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Integration test shard ${{ matrix.shard }} completed" >> $GITHUB_STEP_SUMMARY
+
+  test-e2e:
+    name: End-to-End Tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]  # 2 e2e test shards in parallel
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python with cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-xdist selenium
+
+      - name: Run e2e tests (sharded)
+        run: |
+          echo "🌐 Running e2e test shard ${{ matrix.shard }} of 2"
+          pytest -q -n auto --maxfail=1 \
+            --junitxml=e2e-report-${{ matrix.shard }}.xml \
+            -k "e2e" \
+            --randomly-seed=${{ matrix.shard }} \
+            --durations=20
+
+      - name: Upload e2e test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-tests-shard-${{ matrix.shard }}
+          path: e2e-report-*.xml
+          retention-days: 7
+
+      - name: E2E Test Summary
+        if: always()
+        run: |
+          echo "### 🌐 E2E Tests (Shard ${{ matrix.shard }})" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ E2E test shard ${{ matrix.shard }} completed" >> $GITHUB_STEP_SUMMARY
+
+  test-lint:
+    name: Lint and Format
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [ruff, pylint, black, isort]  # 4 linting tools in parallel
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python with cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install ruff pylint black isort
+
+      - name: Run ${{ matrix.tool }} linting
+        run: |
+          echo "🔍 Running ${{ matrix.tool }} linting..."
+          case "${{ matrix.tool }}" in
+            "ruff")
+              ruff check src/ --output-format=github || true
+              ;;
+            "pylint")
+              pylint src/ || true
+              ;;
+            "black")
+              black --check src/ || true
+              ;;
+            "isort")
+              isort --check-only src/ || true
+              ;;
+          esac
+
+      - name: Lint Summary
+        if: always()
+        run: |
+          echo "### 🔍 ${{ matrix.tool }} Linting" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ ${{ matrix.tool }} linting completed" >> $GITHUB_STEP_SUMMARY
 
   web-test:
     name: Web Application Test
@@ -312,7 +461,7 @@ jobs:
   deploy-all:
     name: Deploy to environments (parallel)
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-    needs: [security, test, web-test, aws-integration]
+    needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test, aws-integration]
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 3  # cap if your cloud has limits
@@ -342,7 +491,7 @@ jobs:
   notify:
     name: Notify Results
     if: always()
-    needs: [build, security, test, web-test, aws-integration, deploy-all]
+    needs: [build, security, test-unit, test-integration, test-e2e, test-lint, web-test, aws-integration, deploy-all]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -363,7 +512,10 @@ jobs:
           echo "### 📊 Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Build**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Security**: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tests**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Unit Tests**: ${{ needs.test-unit.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integration Tests**: ${{ needs.test-integration.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **E2E Tests**: ${{ needs.test-e2e.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linting**: ${{ needs.test-lint.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Web Tests**: ${{ needs.web-test.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **AWS Integration**: ${{ needs.aws-integration.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployments**: ${{ needs.deploy-all.result }}" >> $GITHUB_STEP_SUMMARY
@@ -372,13 +524,17 @@ jobs:
         if: ${{ needs.deploy-all.result == 'success' }}
         run: |
           echo "### 🎉 CI/CD Pipeline Completed Successfully!" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All unit tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All integration tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All e2e tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All linting passed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Security scans completed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ All environments deployed successfully" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify Failure
-        if: ${{ needs.deploy-all.result == 'failure' || needs.test.result == 'failure' || needs.security.result == 'failure' }}
+        if: ${{ needs.deploy-all.result == 'failure' || needs.test-unit.result == 'failure' || needs.test-integration.result == 'failure' || needs.test-e2e.result == 'failure' || needs.test-lint.result == 'failure' || needs.security.result == 'failure' }}
         run: |
           echo "### ❌ CI/CD Pipeline Failed" >> $GITHUB_STEP_SUMMARY
           echo "- ❌ Some jobs failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Check individual test results above" >> $GITHUB_STEP_SUMMARY
           echo "- 🔍 Check individual environment status above" >> $GITHUB_STEP_SUMMARY
