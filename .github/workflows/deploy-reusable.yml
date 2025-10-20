@@ -1,0 +1,128 @@
+---
+name: Deploy (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      aws_region:
+        required: true
+        type: string
+      timeout_secs:
+        required: true
+        type: number
+    secrets:
+      AWS_ROLE_ARN:
+        required: true
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false  # serialize per env if multiple callers race
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_secs / 60 }}
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.expose.outputs.env_url || '' }}  # shows on Env page
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Verify artifacts
+        run: |
+          echo "📦 Verifying downloaded artifacts for ${{ inputs.environment }}..."
+          ls -la dist/ || echo "No dist directory found"
+          if [ -d "dist" ]; then
+            echo "✅ Artifacts downloaded successfully"
+            find dist -type f -name "*.whl" -o -name "*.tar.gz" | head -5
+          else
+            echo "⚠️ No artifacts found, proceeding with source deployment"
+          fi
+
+      - name: Setup Python with cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: gha-${{ github.run_id }}
+          audience: sts.amazonaws.com
+
+      - name: Deploy to ${{ inputs.environment }}
+        id: deploy
+        run: |
+          echo "🚀 Deploying to ${{ inputs.environment }} environment"
+          echo "📍 AWS Region: ${{ inputs.aws_region }}"
+          echo "⏱️ Timeout: ${{ inputs.timeout_secs }} seconds"
+          
+          # Simulate deployment based on environment
+          case "${{ inputs.environment }}" in
+            "ephemeral")
+              echo "🔄 Deploying ephemeral environment (quick deployment)"
+              python -c "print('Ephemeral deployment: Basic infrastructure')"
+              ;;
+            "dev")
+              echo "🛠️ Deploying development environment (feature deployment)"
+              python -c "print('Dev deployment: All features enabled')"
+              ;;
+            "staging")
+              echo "🧪 Deploying staging environment (integration deployment)"
+              python -c "print('Staging deployment: Production-like setup')"
+              ;;
+            "prod")
+              echo "🔒 Deploying production environment (critical deployment)"
+              python -c "print('Production deployment: High availability setup')"
+              ;;
+          esac
+          
+          # Set deployment URL based on environment
+          echo "env_url=https://${{ inputs.environment }}.example.com" >> "$GITHUB_OUTPUT"
+          echo "✅ Deployment to ${{ inputs.environment }} completed"
+
+      - name: Expose URL
+        id: expose
+        run: |
+          echo "env_url=${{ steps.deploy.outputs.env_url }}" >> "$GITHUB_OUTPUT"
+          echo "🔗 Environment URL: ${{ steps.deploy.outputs.env_url }}"
+
+      - name: Post-deploy checks
+        uses: ./.github/actions/post-deploy-checks
+        with:
+          environment: ${{ inputs.environment }}
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "### 🚀 Deployment Results (${{ inputs.environment }})" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Deployed to ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 📍 Region: ${{ inputs.aws_region }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 URL: ${{ steps.deploy.outputs.env_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏱️ Timeout: ${{ inputs.timeout_secs }}s" >> $GITHUB_STEP_SUMMARY

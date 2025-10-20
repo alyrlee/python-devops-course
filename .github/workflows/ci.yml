@@ -308,116 +308,48 @@ jobs:
           echo "- ✅ AWS SDK imports successfully" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ AWS integration test completed" >> $GITHUB_STEP_SUMMARY
 
-  # —— Deployment (runs after all parallel lanes) ——
-  deploy:
-    name: Deploy to Environments
+  # —— Environment-level fan-out with reusable workflows ——
+  deploy-all:
+    name: Deploy to environments (parallel)
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     needs: [security, test, web-test, aws-integration]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     strategy:
-      fail-fast: false
+      max-parallel: 3  # cap if your cloud has limits
       matrix:
         include:
           - environment: ephemeral
             aws_region: us-east-1
-            timeout: 300
+            timeout_secs: 300
           - environment: dev
             aws_region: us-east-1
-            timeout: 600
+            timeout_secs: 600
           - environment: staging
             aws_region: us-east-1
-            timeout: 900
+            timeout_secs: 900
           - environment: prod
             aws_region: us-west-2
-            timeout: 1200
-    environment:
-      name: ${{ matrix.environment }}
-    permissions:
-      contents: read
-      id-token: write
-      deployments: write
+            timeout_secs: 1200
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Verify artifacts
-        run: |
-          echo "📦 Verifying downloaded artifacts..."
-          ls -la dist/ || echo "No dist directory found"
-          if [ -d "dist" ]; then
-            echo "✅ Artifacts downloaded successfully"
-            find dist -type f -name "*.whl" -o -name "*.tar.gz" | head -5
-          else
-            echo "⚠️ No artifacts found, proceeding with source deployment"
-          fi
-
-      - name: Setup Python with cache
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ matrix.aws_region }}
-          role-session-name: gha-${{ github.run_id }}
-          audience: sts.amazonaws.com
-
-      - name: Deploy to ${{ matrix.environment }}
-        run: |
-          echo "🚀 Deploying to ${{ matrix.environment }} environment"
-          echo "📍 AWS Region: ${{ matrix.aws_region }}"
-          echo "⏱️ Timeout: ${{ matrix.timeout }} seconds"
-          
-          # Simulate deployment
-          python -c "print(f'Deploying to {matrix.environment} in {matrix.aws_region}')"
-          echo "✅ Deployment to ${{ matrix.environment }} completed"
-
-      - name: Expose deployment URL
-        id: expose-url
-        run: |
-          echo "url=https://${{ matrix.environment }}.example.com" >> $GITHUB_OUTPUT
-
-      - name: Post-deploy checks
-        uses: ./.github/actions/post-deploy-checks
+      - name: Call reusable deploy
+        uses: ./.github/workflows/deploy-reusable.yml
         with:
           environment: ${{ matrix.environment }}
-
-      - name: Deployment Summary
-        if: always()
-        run: |
-          echo "### 🚀 Deployment Results (${{ matrix.environment }})" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Deployed to ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 📍 Region: ${{ matrix.aws_region }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔗 URL: https://${{ matrix.environment }}.example.com" >> $GITHUB_STEP_SUMMARY
+          aws_region: ${{ matrix.aws_region }}
+          timeout_secs: ${{ matrix.timeout_secs }}
+        secrets: inherit
 
   notify:
     name: Notify Results
     if: always()
-    needs: [build, security, test, web-test, aws-integration, deploy]
+    needs: [build, security, test, web-test, aws-integration, deploy-all]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
     steps:
       - name: Notify Success
-        if: ${{ needs.deploy.result == 'success' }}
+        if: ${{ needs.deploy-all.result == 'success' }}
         run: |
           echo "### 🎉 CI/CD Pipeline Completed Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ All tests passed" >> $GITHUB_STEP_SUMMARY
@@ -425,7 +357,7 @@ jobs:
           echo "- ✅ Deployments successful" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify Failure
-        if: ${{ needs.deploy.result == 'failure' || needs.test.result == 'failure' || needs.security.result == 'failure' }}
+        if: ${{ needs.deploy-all.result == 'failure' || needs.test.result == 'failure' || needs.security.result == 'failure' }}
         run: |
           echo "### ❌ CI/CD Pipeline Failed" >> $GITHUB_STEP_SUMMARY
           echo "- ❌ Some jobs failed - check logs for details" >> $GITHUB_STEP_SUMMARY
