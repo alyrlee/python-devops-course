@@ -536,10 +536,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Environment | Status | Region | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|-------------|--------|--------|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| **ephemeral** | ${{ needs.deploy-ephemeral.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://ephemeral.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **dev** | ${{ needs.deploy-dev.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://dev.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **staging** | ${{ needs.deploy-staging.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://staging.example.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **prod** | ${{ needs.deploy-prod.result == 'success' && '✅ Success' || '❌ Failed' }} | us-west-2 | https://prod.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **ephemeral** | ${{ needs.deploy-ephemeral.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | http://localhost:5001/environments/ephemeral |" >> $GITHUB_STEP_SUMMARY
+          echo "| **dev** | ${{ needs.deploy-dev.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | http://localhost:5001/environments/dev |" >> $GITHUB_STEP_SUMMARY
+          echo "| **staging** | ${{ needs.deploy-staging.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | http://localhost:5001/environments/staging |" >> $GITHUB_STEP_SUMMARY
+          echo "| **prod** | ${{ needs.deploy-prod.result == 'success' && '✅ Success' || '❌ Failed' }} | us-west-2 | http://localhost:5001/environments/prod |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Build**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY

@@ -342,10 +342,10 @@
                 console.error('Error fetching deployment data:', error);
                 // Fallback to sample data
                 deploymentData = {
-                    ephemeral: { name: 'Ephemeral', status: 'success', region: 'us-east-1', url: 'https://ephemeral.example.com', lastDeployed: '2024-01-15 14:30:00', duration: '2m 15s', commit: 'abc1234' },
-                    dev: { name: 'Development', status: 'success', region: 'us-east-1', url: 'https://dev.example.com', lastDeployed: '2024-01-15 14:25:00', duration: '3m 45s', commit: 'def5678' },
-                    staging: { name: 'Staging', status: 'pending', region: 'us-east-1', url: 'https://staging.example.com', lastDeployed: '2024-01-15 14:20:00', duration: '4m 30s', commit: 'ghi9012' },
-                    prod: { name: 'Production', status: 'failure', region: 'us-west-2', url: 'https://prod.example.com', lastDeployed: '2024-01-15 14:15:00', duration: '5m 10s', commit: 'jkl3456' }
+                    ephemeral: { name: 'Ephemeral', status: 'success', region: 'us-east-1', url: 'http://localhost:5001/environments/ephemeral', lastDeployed: '2024-01-15 14:30:00', duration: '2m 15s', commit: 'abc1234' },
+                    dev: { name: 'Development', status: 'success', region: 'us-east-1', url: 'http://localhost:5001/environments/dev', lastDeployed: '2024-01-15 14:25:00', duration: '3m 45s', commit: 'def5678' },
+                    staging: { name: 'Staging', status: 'pending', region: 'us-east-1', url: 'http://localhost:5001/environments/staging', lastDeployed: '2024-01-15 14:20:00', duration: '4m 30s', commit: 'ghi9012' },
+                    prod: { name: 'Production', status: 'failure', region: 'us-west-2', url: 'http://localhost:5001/environments/prod', lastDeployed: '2024-01-15 14:15:00', duration: '5m 10s', commit: 'jkl3456' }
                 };
                 renderEnvironments();
                 updateSummary();

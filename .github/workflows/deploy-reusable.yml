@@ -102,7 +102,7 @@ jobs:
           esac
           
           # Set deployment URL based on environment
-          echo "env_url=https://${{ inputs.environment }}.example.com" >> "$GITHUB_OUTPUT"
+          echo "env_url=http://localhost:5001/environments/${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
           echo "✅ Deployment to ${{ inputs.environment }} completed"
 
       - name: Post Deploy Phase Status

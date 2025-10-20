@@ -93,7 +93,7 @@ Edit `src/web/deployment_api.py` and add new environments to `DEPLOYMENT_DATA`:
     "name": "New Environment",
     "status": "success",
     "region": "us-west-2",
-    "url": "https://new-env.example.com",
+    "url": "http://localhost:5001/environments/new-env",
     "lastDeployed": "2024-01-15 14:30:00",
     "duration": "2m 15s",
     "commit": "abc1234",
