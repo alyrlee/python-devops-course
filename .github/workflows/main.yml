@@ -87,7 +87,7 @@ jobs:
         id: safety_check
         run: |
           echo "🔍 Running Safety vulnerability check..."
-          safety check --json --output safety-report.json
+          safety check --json --output json > safety-report.json
           SAFETY_JSON_EXIT_CODE=$?
           echo "Safety JSON check exit code: $SAFETY_JSON_EXIT_CODE"
 
