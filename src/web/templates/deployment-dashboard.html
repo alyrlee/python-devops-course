@@ -309,7 +309,7 @@
                             <span class="detail-value">${env.commit}</span>
                         </div>
                     </div>
-                    <a href="${env.url}" class="environment-url" target="_blank">
+                    <a href="${env.url}" class="environment-url" target="_blank" onclick="handleEnvironmentClick(event, '${env.name}')">
                         🌐 Visit Environment
                     </a>
                 `;
@@ -365,6 +365,20 @@
                 btn.textContent = '🔄 Refresh Status';
                 btn.disabled = false;
             });
+        }
+
+        function handleEnvironmentClick(event, environmentName) {
+            // Add a small delay to show user feedback
+            const link = event.target;
+            const originalText = link.textContent;
+            link.textContent = '🔄 Loading...';
+            link.style.pointerEvents = 'none';
+            
+            // Reset after a short delay
+            setTimeout(() => {
+                link.textContent = originalText;
+                link.style.pointerEvents = 'auto';
+            }, 1000);
         }
 
         // Initialize the dashboard

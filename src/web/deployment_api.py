@@ -20,7 +20,7 @@ DEPLOYMENT_DATA = {
         "name": "Ephemeral",
         "status": "success",
         "region": "us-east-1",
-        "url": "https://ephemeral.example.com",
+        "url": "http://localhost:5001/environments/ephemeral",
         "lastDeployed": "2024-01-15 14:30:00",
         "duration": "2m 15s",
         "commit": "abc1234",
@@ -31,7 +31,7 @@ DEPLOYMENT_DATA = {
         "name": "Development",
         "status": "success",
         "region": "us-east-1",
-        "url": "https://dev.example.com",
+        "url": "http://localhost:5001/environments/dev",
         "lastDeployed": "2024-01-15 14:25:00",
         "duration": "3m 45s",
         "commit": "def5678",
@@ -42,7 +42,7 @@ DEPLOYMENT_DATA = {
         "name": "Staging",
         "status": "pending",
         "region": "us-east-1",
-        "url": "https://staging.example.com",
+        "url": "http://localhost:5001/environments/staging",
         "lastDeployed": "2024-01-15 14:20:00",
         "duration": "4m 30s",
         "commit": "ghi9012",
@@ -53,7 +53,7 @@ DEPLOYMENT_DATA = {
         "name": "Production",
         "status": "failure",
         "region": "us-west-2",
-        "url": "https://prod.example.com",
+        "url": "http://localhost:5001/environments/prod",
         "lastDeployed": "2024-01-15 14:15:00",
         "duration": "5m 10s",
         "commit": "jkl3456",
@@ -66,6 +66,148 @@ DEPLOYMENT_DATA = {
 def dashboard():
     """Serve the deployment dashboard"""
     return render_template('deployment-dashboard.html')
+
+@app.route('/environments/<environment>')
+def environment_page(environment):
+    """Serve environment-specific pages"""
+    if environment not in DEPLOYMENT_DATA:
+        return f"Environment '{environment}' not found", 404
+    
+    env_data = DEPLOYMENT_DATA[environment]
+    
+    # Create a simple environment page
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{env_data['name']} Environment</title>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                margin: 0;
+                padding: 20px;
+                min-height: 100vh;
+            }}
+            .container {{
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }}
+            .content {{
+                padding: 30px;
+            }}
+            .status-badge {{
+                display: inline-block;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-weight: 600;
+                text-transform: uppercase;
+                margin: 10px 0;
+            }}
+            .status-badge.success {{
+                background: #27ae60;
+                color: white;
+            }}
+            .status-badge.failure {{
+                background: #e74c3c;
+                color: white;
+            }}
+            .status-badge.pending {{
+                background: #f39c12;
+                color: white;
+            }}
+            .info-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin: 20px 0;
+            }}
+            .info-card {{
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                border-left: 4px solid #3498db;
+            }}
+            .info-label {{
+                color: #7f8c8d;
+                font-weight: 500;
+                margin-bottom: 5px;
+            }}
+            .info-value {{
+                color: #2c3e50;
+                font-weight: 600;
+                font-size: 1.1rem;
+            }}
+            .back-btn {{
+                background: #3498db;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 1rem;
+                text-decoration: none;
+                display: inline-block;
+                margin-top: 20px;
+            }}
+            .back-btn:hover {{
+                background: #2980b9;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🚀 {env_data['name']} Environment</h1>
+                <div class="status-badge {env_data['status']}">{env_data['status']}</div>
+            </div>
+            <div class="content">
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-label">Region</div>
+                        <div class="info-value">{env_data['region']}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Last Deployed</div>
+                        <div class="info-value">{env_data['lastDeployed']}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Duration</div>
+                        <div class="info-value">{env_data['duration']}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Commit</div>
+                        <div class="info-value">{env_data['commit']}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Branch</div>
+                        <div class="info-value">{env_data['branch']}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Deployed By</div>
+                        <div class="info-value">{env_data['deployedBy']}</div>
+                    </div>
+                </div>
+                <a href="/" class="back-btn">← Back to Dashboard</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return html
 
 @app.route('/api/deployments')
 def get_deployments():
