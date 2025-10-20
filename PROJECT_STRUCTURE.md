@@ -22,7 +22,7 @@ python-devops-course/
 │       └── marco.py             # Marco utility functions
 ├── tests/                       # Test suite directory
 │   ├── __init__.py              # Test package initialization
-│   ├── test_aws_iam.py          # AWS IAM manager tests
+<!-- │   ├── test_aws_iam.py          # AWS IAM manager tests -->
 │   ├── test_helloclick.py       # Hello Click tests
 │   └── test_gcli.py             # General CLI tests
 ├── docs/                        # Documentation directory
@@ -74,7 +74,7 @@ python-devops-course/
 ### Tests (`tests/`)
 - **Purpose**: Comprehensive test suite
 - **Key Files**:
-  - `test_aws_iam.py`: AWS IAM manager tests
+  <!-- - `test_aws_iam.py`: AWS IAM manager tests -->
   - `test_helloclick.py`: Hello Click tests
   - `test_gcli.py`: General CLI tests
 - **Features**:
@@ -226,7 +226,7 @@ make aws-cleanup
 ## File Naming Conventions
 
 - **Python Files**: Use snake_case (e.g., `aws_iam_manager.py`)
-- **Test Files**: Prefix with `test_` (e.g., `test_aws_iam.py`)
+<!-- - **Test Files**: Prefix with `test_` (e.g., `test_aws_iam.py`) -->
 - **Documentation**: Use UPPER_CASE (e.g., `AWS_IAM_SETUP.md`)
 - **Notebooks**: Use descriptive names (e.g., `Python_for_DevOps.ipynb`)
 

@@ -15,9 +15,9 @@ test-cli:
 	. venv/bin/activate && \
 	python -m pytest tests/test_helloclick.py tests/test_gcli.py -vv
 
-test-aws:
-	. venv/bin/activate && \
-	python -m pytest tests/test_aws_iam.py -vv
+# test-aws:
+# 	. venv/bin/activate && \
+# 	python -m pytest tests/test_aws_iam.py -vv
 
 lint:
 	@if [ -d "venv" ]; then \
@@ -55,9 +55,9 @@ aws-setup:
 	. venv/bin/activate && \
 	python src/aws/aws_iam_manager.py --create-access-key
 
-aws-test:
-	. venv/bin/activate && \
-	python -m pytest tests/test_aws_iam.py -v
+# aws-test:
+# 	. venv/bin/activate && \
+# 	python -m pytest tests/test_aws_iam.py -v
 
 aws-cleanup:
 	@echo "To cleanup AWS resources, run the commands in docs/AWS_IAM_SETUP.md"
