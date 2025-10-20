@@ -1,10 +1,11 @@
+---
 name: Python DevOps CI/CD Pipeline
 
-on: 
+on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -13,9 +14,9 @@ on:
         default: 'dev'
         type: choice
         options:
-        - dev
-        - staging
-        - prod
+          - dev
+          - staging
+          - prod
       skip_tests:
         description: 'Skip tests (use with caution)'
         required: false
@@ -31,112 +32,112 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-    
-    - name: Install security tools
-      run: |
-        python -m pip install --upgrade pip
-        pip install bandit safety semgrep
-    
-    - name: Run Bandit security scan
-      id: bandit_scan
-      run: |
-        echo "🔍 Running Bandit security scan..."
-        bandit -r src/ -f json -o bandit-report.json
-        BANDIT_JSON_EXIT_CODE=$?
-        echo "Bandit JSON scan exit code: $BANDIT_JSON_EXIT_CODE"
-        
-        bandit -r src/ -ll
-        BANDIT_LL_EXIT_CODE=$?
-        echo "Bandit detailed scan exit code: $BANDIT_LL_EXIT_CODE"
-        
-        if [ $BANDIT_JSON_EXIT_CODE -ne 0 ]; then
-          echo "::error file=bandit-report.json::Bandit JSON scan detected security issues with exit code $BANDIT_JSON_EXIT_CODE. Check bandit-report.json artifact for details."
-        fi
-        if [ $BANDIT_LL_EXIT_CODE -ne 0 ]; then
-          echo "::error::Bandit detailed scan detected security issues with exit code $BANDIT_LL_EXIT_CODE. Review logs above for specific findings."
-        fi
-        
-        # Show summary of findings
-        if [ -f bandit-report.json ]; then
-          echo "📊 Bandit scan summary:"
-          python3 -c "import json; data=json.load(open('bandit-report.json')); results=data.get('results',[]); print('Total issues found:', len(results))"
-        fi
-      continue-on-error: true
-    
-    - name: Check for known vulnerabilities
-      id: safety_check
-      run: |
-        echo "🔍 Running Safety vulnerability check..."
-        safety check --json --output safety-report.json
-        SAFETY_JSON_EXIT_CODE=$?
-        echo "Safety JSON check exit code: $SAFETY_JSON_EXIT_CODE"
-        
-        safety check
-        SAFETY_EXIT_CODE=$?
-        echo "Safety detailed check exit code: $SAFETY_EXIT_CODE"
-        
-        if [ $SAFETY_JSON_EXIT_CODE -ne 0 ]; then
-          echo "::error file=safety-report.json::Safety JSON check detected vulnerabilities with exit code $SAFETY_JSON_EXIT_CODE. Check safety-report.json artifact for details."
-        fi
-        if [ $SAFETY_EXIT_CODE -ne 0 ]; then
-          echo "::error::Safety detailed check detected vulnerabilities with exit code $SAFETY_EXIT_CODE. Review logs above for specific findings."
-        fi
-        
-        # Show summary of findings
-        if [ -f safety-report.json ]; then
-          echo "📊 Safety check summary:"
-          python3 -c "import json; data=json.load(open('safety-report.json')); vulns=data.get('vulnerabilities',[]); print('Total vulnerabilities found:', len(vulns))"
-        fi
-      continue-on-error: true
-    
-    - name: Security Scan Summary
-      if: always()
-      run: |
-        echo "🔒 Security Scan Results Summary:"
-        echo "=================================="
-        
-        # Bandit results
-        if [ -f bandit-report.json ]; then
-          BANDIT_ISSUES=$(python3 -c "import json; data=json.load(open('bandit-report.json')); print(len(data.get('results', [])))" 2>/dev/null || echo "0")
-          echo "🔍 Bandit Security Scan: $BANDIT_ISSUES issues found"
-        else
-          echo "🔍 Bandit Security Scan: No report generated"
-        fi
-        
-        # Safety results
-        if [ -f safety-report.json ]; then
-          SAFETY_VULNS=$(python3 -c "import json; data=json.load(open('safety-report.json')); print(len(data.get('vulnerabilities', [])))" 2>/dev/null || echo "0")
-          echo "🛡️ Safety Vulnerability Check: $SAFETY_VULNS vulnerabilities found"
-        else
-          echo "🛡️ Safety Vulnerability Check: No report generated"
-        fi
-        
-        # Overall status
-        if [ "${{ steps.bandit_scan.outcome }}" == "failure" ] || [ "${{ steps.safety_check.outcome }}" == "failure" ]; then
-          echo "❌ Security scan completed with issues - check artifacts for details"
-          echo "::warning::Security scan detected issues that should be reviewed"
-        else
-          echo "✅ Security scan completed successfully"
-        fi
 
-    - name: Upload security reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: security-reports
-        path: |
-          bandit-report.json
-          safety-report.json
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety semgrep
+
+      - name: Run Bandit security scan
+        id: bandit_scan
+        run: |
+          echo "🔍 Running Bandit security scan..."
+          bandit -r src/ -f json -o bandit-report.json
+          BANDIT_JSON_EXIT_CODE=$?
+          echo "Bandit JSON scan exit code: $BANDIT_JSON_EXIT_CODE"
+
+          bandit -r src/ -ll
+          BANDIT_LL_EXIT_CODE=$?
+          echo "Bandit detailed scan exit code: $BANDIT_LL_EXIT_CODE"
+
+          if [ $BANDIT_JSON_EXIT_CODE -ne 0 ]; then
+            echo "::error file=bandit-report.json::Bandit JSON scan detected security issues with exit code $BANDIT_JSON_EXIT_CODE. Check bandit-report.json artifact for details."
+          fi
+          if [ $BANDIT_LL_EXIT_CODE -ne 0 ]; then
+            echo "::error::Bandit detailed scan detected security issues with exit code $BANDIT_LL_EXIT_CODE. Review logs above for specific findings."
+          fi
+
+          # Show summary of findings
+          if [ -f bandit-report.json ]; then
+            echo "📊 Bandit scan summary:"
+            python3 -c "import json; data=json.load(open('bandit-report.json')); results=data.get('results',[]); print('Total issues found:', len(results))"
+          fi
+        continue-on-error: true
+
+      - name: Check for known vulnerabilities
+        id: safety_check
+        run: |
+          echo "🔍 Running Safety vulnerability check..."
+          safety check --json --output safety-report.json
+          SAFETY_JSON_EXIT_CODE=$?
+          echo "Safety JSON check exit code: $SAFETY_JSON_EXIT_CODE"
+
+          safety check
+          SAFETY_EXIT_CODE=$?
+          echo "Safety detailed check exit code: $SAFETY_EXIT_CODE"
+
+          if [ $SAFETY_JSON_EXIT_CODE -ne 0 ]; then
+            echo "::error file=safety-report.json::Safety JSON check detected vulnerabilities with exit code $SAFETY_JSON_EXIT_CODE. Check safety-report.json artifact for details."
+          fi
+          if [ $SAFETY_EXIT_CODE -ne 0 ]; then
+            echo "::error::Safety detailed check detected vulnerabilities with exit code $SAFETY_EXIT_CODE. Review logs above for specific findings."
+          fi
+
+          # Show summary of findings
+          if [ -f safety-report.json ]; then
+            echo "📊 Safety check summary:"
+            python3 -c "import json; data=json.load(open('safety-report.json')); vulns=data.get('vulnerabilities',[]); print('Total vulnerabilities found:', len(vulns))"
+          fi
+        continue-on-error: true
+
+      - name: Security Scan Summary
+        if: always()
+        run: |
+          echo "🔒 Security Scan Results Summary:"
+          echo "=================================="
+
+          # Bandit results
+          if [ -f bandit-report.json ]; then
+            BANDIT_ISSUES=$(python3 -c "import json; data=json.load(open('bandit-report.json')); print(len(data.get('results', [])))" 2>/dev/null || echo "0")
+            echo "🔍 Bandit Security Scan: $BANDIT_ISSUES issues found"
+          else
+            echo "🔍 Bandit Security Scan: No report generated"
+          fi
+
+          # Safety results
+          if [ -f safety-report.json ]; then
+            SAFETY_VULNS=$(python3 -c "import json; data=json.load(open('safety-report.json')); print(len(data.get('vulnerabilities', [])))" 2>/dev/null || echo "0")
+            echo "🛡️ Safety Vulnerability Check: $SAFETY_VULNS vulnerabilities found"
+          else
+            echo "🛡️ Safety Vulnerability Check: No report generated"
+          fi
+
+          # Overall status
+          if [ "${{ steps.bandit_scan.outcome }}" == "failure" ] || [ "${{ steps.safety_check.outcome }}" == "failure" ]; then
+            echo "❌ Security scan completed with issues - check artifacts for details"
+            echo "::warning::Security scan detected issues that should be reviewed"
+          else
+            echo "✅ Security scan completed successfully"
+          fi
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
 
   test:
     name: Test and Lint
@@ -147,89 +148,89 @@ jobs:
       matrix:
         environment: [dev, staging, prod]
     timeout-minutes: 15
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Cache pip dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Verify pylint installation
-      run: |
-        pylint --version
-    
-    - name: Lint with pylint
-      run: |
-        make lint
-    
-    - name: Test with pytest
-      run: |
-        make test
-    
-    - name: Format check
-      run: |
-        make format
-    
-    - name: Test Results Summary
-      if: always()
-      run: |
-        echo "🧪 Test Results Summary:"
-        echo "Job Status: ${{ job.status }}"
-        echo "Environment: ${{ matrix.environment }}"
-        if [ "${{ job.status }}" != "success" ]; then
-          echo "❌ Tests failed for ${{ matrix.environment }}"
-          exit 1
-        else
-          echo "✅ All tests passed for ${{ matrix.environment }}"
-        fi
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify pylint installation
+        run: |
+          pylint --version
+
+      - name: Lint with pylint
+        run: |
+          make lint
+
+      - name: Test with pytest
+        run: |
+          make test
+
+      - name: Format check
+        run: |
+          make format
+
+      - name: Test Results Summary
+        if: always()
+        run: |
+          echo "🧪 Test Results Summary:"
+          echo "Job Status: ${{ job.status }}"
+          echo "Environment: ${{ matrix.environment }}"
+          if [ "${{ job.status }}" != "success" ]; then
+            echo "❌ Tests failed for ${{ matrix.environment }}"
+            exit 1
+          else
+            echo "✅ All tests passed for ${{ matrix.environment }}"
+          fi
 
   web-test:
     name: Web Application Test
     runs-on: ubuntu-latest
     needs: test
     timeout-minutes: 10
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Test web application
-      run: |
-        cd src/web
-        python -c "import application; print('✅ Web app imports successfully')"
-    
-    - name: Test Gunicorn startup
-      run: |
-        cd src/web
-        timeout 10s gunicorn --bind 127.0.0.1:8000 --workers 1 application:app &
-        sleep 5
-        curl -f http://127.0.0.1:8000/api/health || exit 1
-        echo "✅ Web server responds to health check"
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Test web application
+        run: |
+          cd src/web
+          python -c "import application; print('✅ Web app imports successfully')"
+
+      - name: Test Gunicorn startup
+        run: |
+          cd src/web
+          timeout 10s gunicorn --bind 127.0.0.1:8000 --workers 1 application:app &
+          sleep 5
+          curl -f http://127.0.0.1:8000/api/health || exit 1
+          echo "✅ Web server responds to health check"
 
   aws-test:
     name: AWS Integration Test
@@ -237,46 +238,46 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 15
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        role-session-name: GitHubActions-${{ github.run_id }}
-        aws-region: us-east-1
-    
-    - name: Test AWS integration
-      run: |
-        make aws-test
-      continue-on-error: true
-    
-    - name: Test Lambda deployment
-      run: |
-        make lambda-deploy
-      continue-on-error: true
-    
-    - name: Test CloudWatch integration
-      run: |
-        make cloudwatch-info
-      continue-on-error: true
-    
-    - name: AWS Test Results
-      if: always()
-      run: |
-        echo "AWS integration tests completed with status: ${{ job.status }}"
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHubActions-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: Test AWS integration
+        run: |
+          make aws-test
+        continue-on-error: true
+
+      - name: Test Lambda deployment
+        run: |
+          make lambda-deploy
+        continue-on-error: true
+
+      - name: Test CloudWatch integration
+        run: |
+          make cloudwatch-info
+        continue-on-error: true
+
+      - name: AWS Test Results
+        if: always()
+        run: |
+          echo "AWS integration tests completed with status: ${{ job.status }}"
 
   pre-deploy-tests:
     name: Pre-Deployment Tests
@@ -287,52 +288,52 @@ jobs:
       matrix:
         environment: [ephemeral, dev, staging, prod]
     timeout-minutes: 15
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Environment-specific pre-tests
-      env:
-        ENVIRONMENT: ${{ matrix.environment }}
-        AWS_REGION: ${{ matrix.environment == 'prod' && 'us-west-2' || 'us-east-1' }}
-      run: |
-        echo "🧪 Running pre-deployment tests for ${{ matrix.environment }}"
-        
-        # Environment-specific configurations
-        case "${{ matrix.environment }}" in
-          "ephemeral")
-            echo "🔄 Ephemeral environment - quick validation tests"
-            python -c "print('Ephemeral pre-test: Basic imports and syntax check')"
-            ;;
-          "dev")
-            echo "🛠️ Development environment - comprehensive tests"
-            make test
-            ;;
-          "staging")
-            echo "🧪 Staging environment - integration tests"
-            make test
-            python -c "print('Staging pre-test: Integration validation')"
-            ;;
-          "prod")
-            echo "🔒 Production environment - security and performance tests"
-            make test
-            python -c "print('Production pre-test: Security and performance validation')"
-            ;;
-        esac
-        
-        echo "✅ Pre-deployment tests completed for ${{ matrix.environment }}"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Environment-specific pre-tests
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+          AWS_REGION: ${{ matrix.environment == 'prod' && 'us-west-2' || 'us-east-1' }}
+        run: |
+          echo "🧪 Running pre-deployment tests for ${{ matrix.environment }}"
+
+          # Environment-specific configurations
+          case "${{ matrix.environment }}" in
+            "ephemeral")
+              echo "🔄 Ephemeral environment - quick validation tests"
+              python -c "print('Ephemeral pre-test: Basic imports and syntax check')"
+              ;;
+            "dev")
+              echo "🛠️ Development environment - comprehensive tests"
+              make test
+              ;;
+            "staging")
+              echo "🧪 Staging environment - integration tests"
+              make test
+              python -c "print('Staging pre-test: Integration validation')"
+              ;;
+            "prod")
+              echo "🔒 Production environment - security and performance tests"
+              make test
+              python -c "print('Production pre-test: Security and performance validation')"
+              ;;
+          esac
+
+          echo "✅ Pre-deployment tests completed for ${{ matrix.environment }}"
 
   deploy:
     name: Deploy to Environments
@@ -343,219 +344,219 @@ jobs:
       matrix:
         environment: [ephemeral, dev, staging, prod]
     timeout-minutes: 20
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Configure environment-specific settings
-      env:
-        ENVIRONMENT: ${{ matrix.environment }}
-      run: |
-        echo "🔧 Configuring ${{ matrix.environment }} environment"
-        
-        # Set environment-specific variables
-        case "${{ matrix.environment }}" in
-          "ephemeral")
-            echo "EPHEMERAL_MODE=true" >> $GITHUB_ENV
-            echo "DEPLOY_TIMEOUT=300" >> $GITHUB_ENV
-            echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
-            ;;
-          "dev")
-            echo "DEV_MODE=true" >> $GITHUB_ENV
-            echo "DEPLOY_TIMEOUT=600" >> $GITHUB_ENV
-            echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
-            ;;
-          "staging")
-            echo "STAGING_MODE=true" >> $GITHUB_ENV
-            echo "DEPLOY_TIMEOUT=900" >> $GITHUB_ENV
-            echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
-            ;;
-          "prod")
-            echo "PROD_MODE=true" >> $GITHUB_ENV
-            echo "DEPLOY_TIMEOUT=1200" >> $GITHUB_ENV
-            echo "AWS_REGION=us-west-2" >> $GITHUB_ENV
-            ;;
-        esac
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Deploy to ${{ matrix.environment }}
-      env:
-        MY_SECRET: ${{ secrets.MY_SECRET || 'default-secret' }}
-        ENVIRONMENT: ${{ matrix.environment }}
-        AWS_REGION: ${{ env.AWS_REGION }}
-      run: |
-        set -e
-        echo "🚀 Starting deployment to ${{ matrix.environment }}"
-        
-        # Environment-specific deployment logic
-        case "${{ matrix.environment }}" in
-          "ephemeral")
-            echo "🔄 Ephemeral deployment - temporary environment"
-            echo "Deploying to Ephemeral (auto-cleanup in 24h)"
-            ;;
-          "dev")
-            echo "🛠️ Development deployment - experimental features"
-            echo "Deploying to Development"
-            ;;
-          "staging")
-            echo "🧪 Staging deployment - pre-production testing"
-            echo "Deploying to Staging"
-            ;;
-          "prod")
-            echo "🔒 Production deployment - live environment"
-            echo "Deploying to Production"
-            ;;
-        esac
-        
-        echo "✅ Deployment to ${{ matrix.environment }} completed successfully"
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
-    - name: Smoke Tests for ${{ matrix.environment }}
-      env:
-        ENVIRONMENT: ${{ matrix.environment }}
-        AWS_REGION: ${{ env.AWS_REGION }}
-      run: |
-        echo "💨 Running smoke tests for ${{ matrix.environment }}"
-        
-        # Environment-specific smoke tests
-        case "${{ matrix.environment }}" in
-          "ephemeral")
-            echo "🔄 Ephemeral smoke test: Basic connectivity"
-            python -c "print('Ephemeral smoke test: Service is responding')"
-            ;;
-          "dev")
-            echo "🛠️ Development smoke test: Feature validation"
-            python -c "print('Dev smoke test: All features working')"
-            ;;
-          "staging")
-            echo "🧪 Staging smoke test: Integration validation"
-            python -c "print('Staging smoke test: Integration working')"
-            ;;
-          "prod")
-            echo "🔒 Production smoke test: Critical path validation"
-            python -c "print('Production smoke test: Critical paths working')"
-            ;;
-        esac
-        
-        echo "✅ Smoke tests passed for ${{ matrix.environment }}"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Regression Tests for ${{ matrix.environment }}
-      env:
-        ENVIRONMENT: ${{ matrix.environment }}
-        AWS_REGION: ${{ env.AWS_REGION }}
-      run: |
-        echo "🔄 Running regression tests for ${{ matrix.environment }}"
-        
-        # Environment-specific regression tests
-        case "${{ matrix.environment }}" in
-          "ephemeral")
-            echo "🔄 Ephemeral regression test: Quick validation"
-            python -c "print('Ephemeral regression: Basic functionality intact')"
-            ;;
-          "dev")
-            echo "🛠️ Development regression test: Feature regression check"
-            python -c "print('Dev regression: No feature regressions detected')"
-            ;;
-          "staging")
-            echo "🧪 Staging regression test: Full regression suite"
-            python -c "print('Staging regression: Full regression suite passed')"
-            ;;
-          "prod")
-            echo "🔒 Production regression test: Critical regression check"
-            python -c "print('Production regression: Critical functionality intact')"
-            ;;
-        esac
-        
-        echo "✅ Regression tests passed for ${{ matrix.environment }}"
-    
-    - name: Post-Deployment Validation
-      env:
-        ENVIRONMENT: ${{ matrix.environment }}
-        AWS_REGION: ${{ env.AWS_REGION }}
-      run: |
-        echo "🔍 Running post-deployment validation for ${{ matrix.environment }}"
-        
-        # Environment-specific validation
-        case "${{ matrix.environment }}" in
-          "ephemeral")
-            echo "🔄 Ephemeral validation: Quick health check"
-            python -c "print('Ephemeral validation: Environment is healthy')"
-            ;;
-          "dev")
-            echo "🛠️ Development validation: Feature completeness"
-            python -c "print('Dev validation: All features deployed correctly')"
-            ;;
-          "staging")
-            echo "🧪 Staging validation: Integration readiness"
-            python -c "print('Staging validation: Ready for production promotion')"
-            ;;
-          "prod")
-            echo "🔒 Production validation: Live system health"
-            python -c "print('Production validation: System is live and healthy')"
-            ;;
-        esac
-        
-        echo "✅ Post-deployment validation completed for ${{ matrix.environment }}"
-    
-    - name: Deployment Status
-      if: always()
-      run: |
-        echo "📊 Deployment Summary for ${{ matrix.environment }}:"
-        echo "  Status: ${{ job.status }}"
-        echo "  Environment: ${{ matrix.environment }}"
-        echo "  Region: ${{ env.AWS_REGION }}"
-        echo "  Timeout: ${{ env.DEPLOY_TIMEOUT }}s"
-        
-        if [ "${{ job.status }}" != "success" ]; then
-          echo "❌ Deployment failed for ${{ matrix.environment }}"
-          exit 1
-        else
-          echo "✅ Deployment successful for ${{ matrix.environment }}"
-        fi
+      - name: Configure environment-specific settings
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          echo "🔧 Configuring ${{ matrix.environment }} environment"
+
+          # Set environment-specific variables
+          case "${{ matrix.environment }}" in
+            "ephemeral")
+              echo "EPHEMERAL_MODE=true" >> $GITHUB_ENV
+              echo "DEPLOY_TIMEOUT=300" >> $GITHUB_ENV
+              echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
+              ;;
+            "dev")
+              echo "DEV_MODE=true" >> $GITHUB_ENV
+              echo "DEPLOY_TIMEOUT=600" >> $GITHUB_ENV
+              echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
+              ;;
+            "staging")
+              echo "STAGING_MODE=true" >> $GITHUB_ENV
+              echo "DEPLOY_TIMEOUT=900" >> $GITHUB_ENV
+              echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
+              ;;
+            "prod")
+              echo "PROD_MODE=true" >> $GITHUB_ENV
+              echo "DEPLOY_TIMEOUT=1200" >> $GITHUB_ENV
+              echo "AWS_REGION=us-west-2" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Deploy to ${{ matrix.environment }}
+        env:
+          MY_SECRET: ${{ secrets.MY_SECRET || 'default-secret' }}
+          ENVIRONMENT: ${{ matrix.environment }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          set -e
+          echo "🚀 Starting deployment to ${{ matrix.environment }}"
+
+          # Environment-specific deployment logic
+          case "${{ matrix.environment }}" in
+            "ephemeral")
+              echo "🔄 Ephemeral deployment - temporary environment"
+              echo "Deploying to Ephemeral (auto-cleanup in 24h)"
+              ;;
+            "dev")
+              echo "🛠️ Development deployment - experimental features"
+              echo "Deploying to Development"
+              ;;
+            "staging")
+              echo "🧪 Staging deployment - pre-production testing"
+              echo "Deploying to Staging"
+              ;;
+            "prod")
+              echo "🔒 Production deployment - live environment"
+              echo "Deploying to Production"
+              ;;
+          esac
+
+          echo "✅ Deployment to ${{ matrix.environment }} completed successfully"
+
+      - name: Smoke Tests for ${{ matrix.environment }}
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          echo "💨 Running smoke tests for ${{ matrix.environment }}"
+
+          # Environment-specific smoke tests
+          case "${{ matrix.environment }}" in
+            "ephemeral")
+              echo "🔄 Ephemeral smoke test: Basic connectivity"
+              python -c "print('Ephemeral smoke test: Service is responding')"
+              ;;
+            "dev")
+              echo "🛠️ Development smoke test: Feature validation"
+              python -c "print('Dev smoke test: All features working')"
+              ;;
+            "staging")
+              echo "🧪 Staging smoke test: Integration validation"
+              python -c "print('Staging smoke test: Integration working')"
+              ;;
+            "prod")
+              echo "🔒 Production smoke test: Critical path validation"
+              python -c "print('Production smoke test: Critical paths working')"
+              ;;
+          esac
+
+          echo "✅ Smoke tests passed for ${{ matrix.environment }}"
+
+      - name: Regression Tests for ${{ matrix.environment }}
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          echo "🔄 Running regression tests for ${{ matrix.environment }}"
+
+          # Environment-specific regression tests
+          case "${{ matrix.environment }}" in
+            "ephemeral")
+              echo "🔄 Ephemeral regression test: Quick validation"
+              python -c "print('Ephemeral regression: Basic functionality intact')"
+              ;;
+            "dev")
+              echo "🛠️ Development regression test: Feature regression check"
+              python -c "print('Dev regression: No feature regressions detected')"
+              ;;
+            "staging")
+              echo "🧪 Staging regression test: Full regression suite"
+              python -c "print('Staging regression: Full regression suite passed')"
+              ;;
+            "prod")
+              echo "🔒 Production regression test: Critical regression check"
+              python -c "print('Production regression: Critical functionality intact')"
+              ;;
+          esac
+
+          echo "✅ Regression tests passed for ${{ matrix.environment }}"
+
+      - name: Post-Deployment Validation
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          echo "🔍 Running post-deployment validation for ${{ matrix.environment }}"
+
+          # Environment-specific validation
+          case "${{ matrix.environment }}" in
+            "ephemeral")
+              echo "🔄 Ephemeral validation: Quick health check"
+              python -c "print('Ephemeral validation: Environment is healthy')"
+              ;;
+            "dev")
+              echo "🛠️ Development validation: Feature completeness"
+              python -c "print('Dev validation: All features deployed correctly')"
+              ;;
+            "staging")
+              echo "🧪 Staging validation: Integration readiness"
+              python -c "print('Staging validation: Ready for production promotion')"
+              ;;
+            "prod")
+              echo "🔒 Production validation: Live system health"
+              python -c "print('Production validation: System is live and healthy')"
+              ;;
+          esac
+
+          echo "✅ Post-deployment validation completed for ${{ matrix.environment }}"
+
+      - name: Deployment Status
+        if: always()
+        run: |
+          echo "📊 Deployment Summary for ${{ matrix.environment }}:"
+          echo "  Status: ${{ job.status }}"
+          echo "  Environment: ${{ matrix.environment }}"
+          echo "  Region: ${{ env.AWS_REGION }}"
+          echo "  Timeout: ${{ env.DEPLOY_TIMEOUT }}s"
+
+          if [ "${{ job.status }}" != "success" ]; then
+            echo "❌ Deployment failed for ${{ matrix.environment }}"
+            exit 1
+          else
+            echo "✅ Deployment successful for ${{ matrix.environment }}"
+          fi
 
   notify:
     name: Notify Results
     runs-on: ubuntu-latest
     needs: [security-scan, test, web-test, aws-test, pre-deploy-tests, deploy]
     if: always()
-    
+
     steps:
-    - name: Notify Success
-      if: needs.deploy.result == 'success'
-      run: |
-        echo "🎉 All jobs completed successfully!"
-        echo "✅ Security scan: ${{ needs.security-scan.result }}"
-        echo "✅ Tests: ${{ needs.test.result }}"
-        echo "✅ Web tests: ${{ needs.web-test.result }}"
-        echo "✅ AWS tests: ${{ needs.aws-test.result }}"
-        echo "✅ Pre-deploy tests: ${{ needs.pre-deploy-tests.result }}"
-        echo "✅ Deployment: ${{ needs.deploy.result }}"
-        echo ""
-        echo "🚀 Deployments completed to all environments:"
-        echo "  🔄 Ephemeral: Ready for quick testing"
-        echo "  🛠️ Development: Feature development ready"
-        echo "  🧪 Staging: Pre-production testing ready"
-        echo "  🔒 Production: Live system ready"
-    
-    - name: Notify Failure
-      if: needs.deploy.result == 'failure' || needs.test.result == 'failure' || needs.pre-deploy-tests.result == 'failure'
-      run: |
-        echo "❌ Pipeline failed!"
-        echo "Security scan: ${{ needs.security-scan.result }}"
-        echo "Tests: ${{ needs.test.result }}"
-        echo "Web tests: ${{ needs.web-test.result }}"
-        echo "AWS tests: ${{ needs.aws-test.result }}"
-        echo "Pre-deploy tests: ${{ needs.pre-deploy-tests.result }}"
-        echo "Deployment: ${{ needs.deploy.result }}"
-        echo ""
-        echo "🔍 Check the failed job logs for details"
-        exit 1  
+      - name: Notify Success
+        if: needs.deploy.result == 'success'
+        run: |
+          echo "🎉 All jobs completed successfully!"
+          echo "✅ Security scan: ${{ needs.security-scan.result }}"
+          echo "✅ Tests: ${{ needs.test.result }}"
+          echo "✅ Web tests: ${{ needs.web-test.result }}"
+          echo "✅ AWS tests: ${{ needs.aws-test.result }}"
+          echo "✅ Pre-deploy tests: ${{ needs.pre-deploy-tests.result }}"
+          echo "✅ Deployment: ${{ needs.deploy.result }}"
+          echo ""
+          echo "🚀 Deployments completed to all environments:"
+          echo "  🔄 Ephemeral: Ready for quick testing"
+          echo "  🛠️ Development: Feature development ready"
+          echo "  🧪 Staging: Pre-production testing ready"
+          echo "  🔒 Production: Live system ready"
+
+      - name: Notify Failure
+        if: needs.deploy.result == 'failure' || needs.test.result == 'failure' || needs.pre-deploy-tests.result == 'failure'
+        run: |
+          echo "❌ Pipeline failed!"
+          echo "Security scan: ${{ needs.security-scan.result }}"
+          echo "Tests: ${{ needs.test.result }}"
+          echo "Web tests: ${{ needs.web-test.result }}"
+          echo "AWS tests: ${{ needs.aws-test.result }}"
+          echo "Pre-deploy tests: ${{ needs.pre-deploy-tests.result }}"
+          echo "Deployment: ${{ needs.deploy.result }}"
+          echo ""
+          echo "🔍 Check the failed job logs for details"
+          exit 1
