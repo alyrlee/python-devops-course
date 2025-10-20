@@ -187,7 +187,7 @@ make aws-test
 
 ## 🔄 GitHub Actions CI/CD
 
-### Main Pipeline (`.github/workflows/main.yml`)
+### CI Pipeline (`.github/workflows/ci.yml`)
 ```yaml
 # Security scanning with SARIF uploads
 - name: Bandit (SARIF)
@@ -377,7 +377,7 @@ eb terminate
 
 #### **GitHub Actions + CodeBuild + Elastic Beanstalk**
 ```yaml
-# .github/workflows/deploy-aws.yml
+# .github/workflows/ship.yml
 name: Deploy to AWS
 on:
   push:

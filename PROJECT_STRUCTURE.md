@@ -8,9 +8,9 @@ This document describes the organized structure of the Python DevOps Course proj
 python-devops-course/
 ├── .github/                      # GitHub Actions CI/CD
 │   ├── workflows/               # GitHub Actions workflows
-│   │   ├── main.yml             # Main CI/CD pipeline with security & deployment
-│   │   ├── deploy-aws.yml       # AWS deployment workflow
-│   │   └── deploy.yml            # Production deployment workflow
+│   │   ├── ci.yml               # CI/CD pipeline with testing and deployment
+│   │   ├── ship.yml             # Orchestrated deployment pipeline
+│   │   └── deploy-reusable.yml  # Reusable deployment workflow
 │   └── actions/                 # Reusable composite actions
 │       ├── python-setup/        # Python setup with caching
 │       │   └── action.yml       # DRY Python environment setup
@@ -67,7 +67,7 @@ python-devops-course/
 
 ### GitHub Actions Workflows
 
-#### **Main Pipeline (`.github/workflows/main.yml`)**
+#### **CI Pipeline (`.github/workflows/ci.yml`)**
 - **Security Scanning**: Bandit, Semgrep, Safety with SARIF uploads
 - **Dependency Review**: Automated vulnerability scanning for PRs
 - **Parallel Testing**: pytest-xdist with conditional strategies
@@ -75,13 +75,13 @@ python-devops-course/
 - **Job Summaries**: Rich markdown summaries in GitHub UI
 - **Artifact Management**: Build once, deploy many pattern
 
-#### **AWS Deployment (`.github/workflows/deploy-aws.yml`)**
+#### **Ship Pipeline (`.github/workflows/ship.yml`)**
 - **Elastic Beanstalk**: Automated web application deployment
 - **Lambda Functions**: Serverless function deployment
 - **AWS OIDC**: Secure role-based authentication
 - **Environment Management**: GitHub Environments integration
 
-#### **Production Deployment (`.github/workflows/deploy.yml`)**
+#### **Reusable Deployment (`.github/workflows/deploy-reusable.yml`)**
 - **Production-Ready**: Optimized for production deployments
 - **Security Hardening**: Least-privilege permissions
 - **Monitoring Integration**: CloudWatch and health checks
@@ -301,10 +301,10 @@ git push origin main
 ### Advanced Usage
 ```bash
 # Environment-specific deployment
-gh workflow run deploy-aws.yml
+gh workflow run ship.yml
 
 # Security scanning
-gh workflow run main.yml
+gh workflow run ci.yml
 
 # View results
 gh run view
