@@ -1,10 +1,10 @@
-![Python CI Steps Github Actions](https://github.com/noahgift/python-devops-course/workflows/Python%20CI%20Steps%20Github%20Actions/badge.svg)
+![Python DevOps CI/CD Pipeline](https://github.com/noahgift/python-devops-course/workflows/Python%20DevOps%20CI/CD%20Pipeline/badge.svg)
 
 [![CircleCI](https://circleci.com/gh/noahgift/python-devops-course.svg?style=svg)](https://circleci.com/gh/noahgift/python-devops-course)
 
 # Python DevOps Course
 
-A comprehensive repository for learning Python DevOps practices with organized project structure and AWS integration.
+A comprehensive repository for learning Python DevOps practices with enterprise-grade CI/CD pipeline, security scanning, and AWS integration.
 
 ## 📁 Project Structure
 
@@ -43,6 +43,32 @@ python-devops-course/
 ├── README.md                     # Project overview
 └── PROJECT_STRUCTURE.md          # Detailed structure guide
 ```
+
+## 🚀 Enhanced CI/CD Pipeline
+
+### 🔒 Security & Quality
+- **Security Scanning**: Bandit, Semgrep, Safety with SARIF uploads
+- **Dependency Review**: Automated vulnerability scanning for PRs
+- **SARIF Integration**: Security results surface in GitHub Security tab
+- **Conditional Failure**: Soft failures on dev, hard failures on main
+
+### ⚡ Performance & Efficiency
+- **Parallel Testing**: pytest-xdist with conditional strategies
+- **Build Once, Deploy Many**: Artifact reuse across environments
+- **Smart Caching**: pip cache with dependency path monitoring
+- **Fail-Fast Control**: Resilient to single environment failures
+
+### 🌍 Multi-Environment Deployment
+- **GitHub Environments**: Approval gates and environment-specific secrets
+- **Matrix Strategies**: Parallel deployment to multiple environments
+- **Environment-Specific**: Different configurations per environment
+- **URL Tracking**: Deployment URL history and monitoring
+
+### 🛠️ Developer Experience
+- **Job Summaries**: Rich markdown summaries in GitHub UI
+- **Composite Actions**: DRY principle for reusable workflows
+- **Ruff Integration**: 10-100x faster linting than pylint
+- **Artifact Management**: Conditional uploads with retention policies
 
 ## 🚀 Quick Start
 
@@ -161,6 +187,64 @@ make aws-test
 - ✅ User management and role assumption
 - ✅ Access key creation
 - ✅ Comprehensive error handling
+
+## 🔄 GitHub Actions CI/CD
+
+### Main Pipeline (`.github/workflows/main.yml`)
+```yaml
+# Security scanning with SARIF uploads
+- name: Bandit (SARIF)
+  run: bandit -r src -f sarif -o bandit.sarif
+
+- name: Semgrep (SARIF)  
+  run: semgrep ci --config p/ci --sarif --output semgrep.sarif
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v3
+```
+
+### Parallel Testing
+```yaml
+# Fast feedback on PRs, comprehensive on main
+- name: Test with pytest
+  run: |
+    if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+      pytest -q --maxfail=0 -n auto --durations=15
+    else
+      pytest -q --maxfail=1 -n auto --durations=15
+    fi
+```
+
+### Multi-Environment Deployment
+```yaml
+strategy:
+  fail-fast: false
+  matrix:
+    include:
+      - environment: ephemeral
+        aws_region: us-east-1
+        timeout: 300
+      - environment: dev
+        aws_region: us-east-1
+        timeout: 600
+      - environment: staging
+        aws_region: us-east-1
+        timeout: 900
+      - environment: prod
+        aws_region: us-west-2
+        timeout: 1200
+```
+
+### Composite Actions
+```yaml
+# DRY Python setup
+- uses: ./.github/actions/python-setup
+
+# Environment-specific post-deploy checks
+- uses: ./.github/actions/post-deploy-checks
+  with:
+    environment: ${{ matrix.environment }}
+```
 
 ## 📖 Documentation
 
