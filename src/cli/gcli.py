@@ -2,20 +2,20 @@
 import click
 import glob
 
-# this is bad code intentionally
-# varbad=
-
 
 @click.command()
 @click.option(
     "--path",
-    prompt="Path to search for csv files",
+    prompt="Path to search for files",
     help="This is the path to search for files: /tmp",
 )
 @click.option(
-    "--ftype", prompt="Pass in the type of file", help="Pass in the file type:  i.e csv"
+    "--ftype", 
+    prompt="Pass in the type of file", 
+    help="Pass in the file type: i.e csv"
 )
 def search(path, ftype):
+    """Search for files of a specific type in a given path."""
     results = glob.glob(f"{path}/*.{ftype}")
     click.echo(click.style("Found Matches:", fg="red"))
     for result in results:
