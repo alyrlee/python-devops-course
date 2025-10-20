@@ -468,7 +468,8 @@ jobs:
       environment: ephemeral
       aws_region: us-east-1
       timeout_secs: 300
-    secrets: inherit
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
   deploy-dev:
     name: Deploy to dev
@@ -479,7 +480,8 @@ jobs:
       environment: dev
       aws_region: us-east-1
       timeout_secs: 600
-    secrets: inherit
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
   deploy-staging:
     name: Deploy to staging
@@ -490,7 +492,8 @@ jobs:
       environment: staging
       aws_region: us-east-1
       timeout_secs: 900
-    secrets: inherit
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
   deploy-prod:
     name: Deploy to prod
@@ -501,7 +504,8 @@ jobs:
       environment: prod
       aws_region: us-west-2
       timeout_secs: 1200
-    secrets: inherit
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
   notify:
     name: Notify Results
