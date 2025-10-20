@@ -13,7 +13,7 @@ from web.deployment_api import app
 
 if __name__ == '__main__':
     print("🚀 Starting Deployment Dashboard...")
-    print("📊 Dashboard will be available at: http://localhost:5000")
+    print("📊 Dashboard will be available at: http://localhost:5001")
     print("🔗 API endpoints:")
     print("   - GET  /api/deployments - Get all deployment statuses")
     print("   - GET  /api/deployments/<env> - Get specific environment status")
@@ -22,4 +22,4 @@ if __name__ == '__main__':
     print("   - GET  /api/summary - Deployment summary")
     print("\nPress Ctrl+C to stop the server")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

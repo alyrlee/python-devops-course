@@ -4,7 +4,6 @@ Deployment API for the Python DevOps Course application
 Provides endpoints for deployment status and dashboard
 """
 
-import json
 import os
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
@@ -138,4 +137,4 @@ if __name__ == '__main__':
     if os.path.exists(html_file) and not os.path.exists(template_file):
         os.rename(html_file, template_file)
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)
