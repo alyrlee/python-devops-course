@@ -463,6 +463,10 @@ jobs:
     name: Deploy to ephemeral
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test]
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     uses: ./.github/workflows/deploy-reusable.yml
     with:
       environment: ephemeral
@@ -475,6 +479,10 @@ jobs:
     name: Deploy to dev
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test]
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     uses: ./.github/workflows/deploy-reusable.yml
     with:
       environment: dev
@@ -487,6 +495,10 @@ jobs:
     name: Deploy to staging
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test]
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     uses: ./.github/workflows/deploy-reusable.yml
     with:
       environment: staging
@@ -499,6 +511,10 @@ jobs:
     name: Deploy to prod
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     needs: [security, test-unit, test-integration, test-e2e, test-lint, web-test]
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     uses: ./.github/workflows/deploy-reusable.yml
     with:
       environment: prod

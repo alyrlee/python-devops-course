@@ -83,6 +83,10 @@ jobs:
   # —— Early environments (parallel deployment) ——
   deploy-early:
     needs: build
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     strategy:
       fail-fast: false
       matrix:
@@ -100,6 +104,10 @@ jobs:
   # —— Staging deployment (sequential) ——
   deploy-staging:
     needs: deploy-early
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     uses: ./.github/workflows/deploy-reusable.yml
     with:
       environment: staging
@@ -111,6 +119,10 @@ jobs:
   # —— Production deployment (sequential with protection) ——
   deploy-prod:
     needs: deploy-staging
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     uses: ./.github/workflows/deploy-reusable.yml
     with:
       environment: prod
