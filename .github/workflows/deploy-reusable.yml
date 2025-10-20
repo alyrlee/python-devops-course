@@ -107,6 +107,27 @@ jobs:
           echo "env_url=https://${{ inputs.environment }}.example.com" >> "$GITHUB_OUTPUT"
           echo "✅ Deployment to ${{ inputs.environment }} completed"
 
+      - name: Post Deploy Phase Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const environment = '${{ inputs.environment }}';
+            const deployStatus = '${{ steps.deploy.outcome }}' === 'success' ? 'success' : 'failure';
+            
+            // Post deployment phase status
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: context.payload.deployment?.id || 0,
+              state: deployStatus,
+              environment: environment,
+              description: `Deploy phase ${deployStatus} for ${environment}`,
+              log_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+            
+            console.log(`Posted deploy phase ${deployStatus} for ${environment}`);
+
       - name: Expose URL
         id: expose
         run: |
@@ -114,15 +135,68 @@ jobs:
           echo "🔗 Environment URL: ${{ steps.deploy.outputs.env_url }}"
 
       - name: Post-deploy checks
+        id: post-deploy
         uses: ./.github/actions/post-deploy-checks
         with:
           environment: ${{ inputs.environment }}
 
-      - name: Deployment Summary
+      - name: Post Deploy Checks Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const environment = '${{ inputs.environment }}';
+            const checksStatus = '${{ steps.post-deploy.outcome }}' === 'success' ? 'success' : 'failure';
+            
+            // Post checks phase status
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: context.payload.deployment?.id || 0,
+              state: checksStatus,
+              environment: environment,
+              description: `Post-deploy checks ${checksStatus} for ${environment}`,
+              log_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+            
+            console.log(`Posted post-deploy checks ${checksStatus} for ${environment}`);
+
+      - name: Environment Dashboard Summary
         if: always()
         run: |
-          echo "### 🚀 Deployment Results (${{ inputs.environment }})" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Deployed to ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 📍 Region: ${{ inputs.aws_region }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔗 URL: ${{ steps.deploy.outputs.env_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- ⏱️ Timeout: ${{ inputs.timeout_secs }}s" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### ${ENVIRONMENT^} Deployment Dashboard"
+            echo "- **Status**: ${{ job.status }}"
+            echo "- **Region**: ${{ inputs.aws_region }}"
+            echo "- **URL**: ${{ steps.expose.outputs.env_url || 'n/a' }}"
+            echo "- **Timeout**: ${{ inputs.timeout_secs }}s"
+            echo "- **Deployment ID**: ${{ github.run_id }}"
+            echo "- **Triggered by**: ${{ github.actor }}"
+            echo "- **Branch**: ${{ github.ref_name }}"
+            echo "- **Commit**: ${{ github.sha }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+
+      - name: Post Deployment Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const environment = '${{ inputs.environment }}';
+            const status = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            const url = '${{ steps.expose.outputs.env_url || '' }}';
+            
+            // Create deployment status
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: context.payload.deployment?.id || 0,
+              state: status,
+              environment: environment,
+              environment_url: url || undefined,
+              description: `${environment} deployment ${status}`,
+              log_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+            
+            console.log(`Posted ${status} status for ${environment} deployment`);

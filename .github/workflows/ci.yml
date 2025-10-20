@@ -348,16 +348,37 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Environment Dashboard Overview
+        if: always()
+        run: |
+          echo "### 🌍 Environment Dashboard Overview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Status | Region | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|--------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| **ephemeral** | ${{ needs.deploy-all.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://ephemeral.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **dev** | ${{ needs.deploy-all.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://dev.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **staging** | ${{ needs.deploy-all.result == 'success' && '✅ Success' || '❌ Failed' }} | us-east-1 | https://staging.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **prod** | ${{ needs.deploy-all.result == 'success' && '✅ Success' || '❌ Failed' }} | us-west-2 | https://prod.example.com |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security**: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Web Tests**: ${{ needs.web-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AWS Integration**: ${{ needs.aws-integration.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployments**: ${{ needs.deploy-all.result }}" >> $GITHUB_STEP_SUMMARY
+
       - name: Notify Success
         if: ${{ needs.deploy-all.result == 'success' }}
         run: |
           echo "### 🎉 CI/CD Pipeline Completed Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ All tests passed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Security scans completed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Deployments successful" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All environments deployed successfully" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify Failure
         if: ${{ needs.deploy-all.result == 'failure' || needs.test.result == 'failure' || needs.security.result == 'failure' }}
         run: |
           echo "### ❌ CI/CD Pipeline Failed" >> $GITHUB_STEP_SUMMARY
           echo "- ❌ Some jobs failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Check individual environment status above" >> $GITHUB_STEP_SUMMARY
