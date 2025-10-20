@@ -194,7 +194,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-xdist pytest-cov
+          pip install pytest pytest-xdist pytest-cov pytest-randomly
 
       - name: Run unit tests (sharded)
         run: |
@@ -248,7 +248,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-xdist
+          pip install pytest pytest-xdist pytest-randomly
 
       - name: Run integration tests (sharded)
         run: |
@@ -298,7 +298,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-xdist selenium
+          pip install pytest pytest-xdist pytest-randomly selenium
 
       - name: Run e2e tests (sharded)
         run: |

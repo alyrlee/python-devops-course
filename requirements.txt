@@ -2,6 +2,7 @@ pylint
 click
 pytest
 pytest-cov
+pytest-randomly
 black
 boto3
 ipython
