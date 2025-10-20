@@ -33,9 +33,6 @@ python-devops-course/
 │   └── python-devops-lambda.zip  # Current deployment package
 ├── docs/                         # Documentation
 │   └── AWS_IAM_SETUP.md          # AWS setup guide
-├── notebooks/                    # Jupyter notebooks
-│   ├── Python_for_DevOps.ipynb  # Main DevOps notebook
-│   └── Python_for_DevOps-10-07-2021.ipynb # Historical notebook
 ├── requirements.txt              # Dependencies (pylint, click, pytest, boto3, ipython, pandas)
 ├── Makefile                      # Build automation with 15+ commands
 ├── pytest.ini                   # Test configuration
@@ -250,7 +247,6 @@ strategy:
 
 - **Project Structure**: `PROJECT_STRUCTURE.md`
 - **AWS Setup**: `docs/AWS_IAM_SETUP.md`
-- **Notebooks**: `notebooks/` directory
 - **Code Examples**: See `src/` directory
 
 ## 🤝 Contributing

@@ -24,15 +24,9 @@ python-devops-course/
 │   │   └── cloudwatch_monitor.py # CloudWatch monitoring utilities
 │   ├── cli/                     # Command line interface module
 │   │   ├── __init__.py          # CLI package initialization
-│   │   ├── helloclick.py        # Hello Click CLI tool
-│   │   ├── hello-click2.py      # Hello Click CLI tool v2
-│   │   ├── gcli.py              # General CLI utilities
-│   │   ├── hello.py             # AWS S3 buckets listing tool
-│   │   └── lambda_function.py   # AWS Lambda function example
+│   │   └── gcli.py              # General CLI utilities
 │   ├── utils/                   # Utility functions module
-│   │   ├── __init__.py          # Utils package initialization
-│   │   ├── magic_stuff.py       # Magic utility functions
-│   │   └── marco.py             # Marco utility functions
+│   │   └── __init__.py          # Utils package initialization
 │   └── web/                     # Web application module
 │       ├── __init__.py          # Web package initialization
 │       ├── application.py       # Flask web application
@@ -59,9 +53,6 @@ python-devops-course/
 │       └── index.html           # Main web page
 ├── docs/                        # Documentation directory
 │   └── AWS_IAM_SETUP.md         # AWS IAM setup documentation
-├── notebooks/                   # Jupyter notebooks directory
-│   ├── Python_for_DevOps.ipynb # Main DevOps notebook
-│   └── Python_for_DevOps-10-07-2021.ipynb # Historical notebook
 ├── venv/                        # Virtual environment (not tracked)
 ├── __pycache__/                 # Python cache (not tracked)
 ├── requirements.txt             # Python dependencies
