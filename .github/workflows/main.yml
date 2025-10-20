@@ -1,6 +1,22 @@
 ---
 name: Python DevOps CI/CD Pipeline
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  security-events: write   # for SARIF uploads
+  id-token: write          # for AWS OIDC (you're already assuming roles)
+  # everything else defaults to none
+
+defaults:
+  run:
+    shell: bash -euo pipefail
+
 on:
   push:
     branches: [main, dev]
@@ -32,47 +48,40 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+      - name: Setup Python with cache
+        uses: ./.github/actions/python-setup
 
       - name: Install security tools
         run: |
-          python -m pip install --upgrade pip
           pip install bandit safety semgrep
 
-      - name: Run Bandit security scan
+      - name: Bandit (SARIF)
         id: bandit_scan
         run: |
           echo "🔍 Running Bandit security scan..."
-          bandit -r src/ -f json -o bandit-report.json
-          BANDIT_JSON_EXIT_CODE=$?
-          echo "Bandit JSON scan exit code: $BANDIT_JSON_EXIT_CODE"
+          bandit -r src -f sarif -o bandit.sarif
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}
 
-          bandit -r src/ -ll
-          BANDIT_LL_EXIT_CODE=$?
-          echo "Bandit detailed scan exit code: $BANDIT_LL_EXIT_CODE"
+      - name: Semgrep (SARIF)
+        id: semgrep_scan
+        run: |
+          echo "🔍 Running Semgrep security scan..."
+          semgrep ci --config p/ci --sarif --output semgrep.sarif || true
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}
 
-          if [ $BANDIT_JSON_EXIT_CODE -ne 0 ]; then
-            echo "::error file=bandit-report.json::Bandit JSON scan detected security issues with exit code $BANDIT_JSON_EXIT_CODE. Check bandit-report.json artifact for details."
-          fi
-          if [ $BANDIT_LL_EXIT_CODE -ne 0 ]; then
-            echo "::error::Bandit detailed scan detected security issues with exit code $BANDIT_LL_EXIT_CODE. Review logs above for specific findings."
-          fi
-
-          # Show summary of findings
-          if [ -f bandit-report.json ]; then
-            echo "📊 Bandit scan summary:"
-            python3 -c "import json; data=json.load(open('bandit-report.json')); results=data.get('results',[]); print('Total issues found:', len(results))"
-          fi
-        continue-on-error: true
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: .
+          category: python-security
 
       - name: Check for known vulnerabilities
         id: safety_check
@@ -98,36 +107,45 @@ jobs:
             echo "📊 Safety check summary:"
             python3 -c "import json; data=json.load(open('safety-report.json')); vulns=data.get('vulnerabilities',[]); print('Total vulnerabilities found:', len(vulns))"
           fi
-        continue-on-error: true
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Security Scan Summary
         if: always()
         run: |
-          echo "🔒 Security Scan Results Summary:"
-          echo "=================================="
-
+          echo "### 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          
           # Bandit results
-          if [ -f bandit-report.json ]; then
-            BANDIT_ISSUES=$(python3 -c "import json; data=json.load(open('bandit-report.json')); print(len(data.get('results', [])))" 2>/dev/null || echo "0")
-            echo "🔍 Bandit Security Scan: $BANDIT_ISSUES issues found"
+          if [ -f bandit.sarif ]; then
+            BANDIT_ISSUES=$(python3 -c "import json; data=json.load(open('bandit.sarif')); print(len(data.get('runs', [{}])[0].get('results', [])))" 2>/dev/null || echo "0")
+            echo "- 🔍 **Bandit**: $BANDIT_ISSUES security issues found" >> $GITHUB_STEP_SUMMARY
           else
-            echo "🔍 Bandit Security Scan: No report generated"
+            echo "- 🔍 **Bandit**: No SARIF report generated" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Semgrep results
+          if [ -f semgrep.sarif ]; then
+            SEMGREP_ISSUES=$(python3 -c "import json; data=json.load(open('semgrep.sarif')); print(len(data.get('runs', [{}])[0].get('results', [])))" 2>/dev/null || echo "0")
+            echo "- 🔍 **Semgrep**: $SEMGREP_ISSUES security issues found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🔍 **Semgrep**: No SARIF report generated" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Safety results
           if [ -f safety-report.json ]; then
             SAFETY_VULNS=$(python3 -c "import json; data=json.load(open('safety-report.json')); print(len(data.get('vulnerabilities', [])))" 2>/dev/null || echo "0")
-            echo "🛡️ Safety Vulnerability Check: $SAFETY_VULNS vulnerabilities found"
+            echo "- 🛡️ **Safety**: $SAFETY_VULNS vulnerabilities found" >> $GITHUB_STEP_SUMMARY
           else
-            echo "🛡️ Safety Vulnerability Check: No report generated"
+            echo "- 🛡️ **Safety**: No report generated" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Overall status
           if [ "${{ steps.bandit_scan.outcome }}" == "failure" ] || [ "${{ steps.safety_check.outcome }}" == "failure" ]; then
-            echo "❌ Security scan completed with issues - check artifacts for details"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Security scan completed with issues** - check artifacts for details" >> $GITHUB_STEP_SUMMARY
             echo "::warning::Security scan detected issues that should be reviewed"
           else
-            echo "✅ Security scan completed successfully"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Security scan completed successfully**" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload security reports
@@ -136,15 +154,32 @@ jobs:
         with:
           name: security-reports
           path: |
-            bandit-report.json
+            bandit.sarif
+            semgrep.sarif
             safety-report.json
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   test:
     name: Test and Lint
     runs-on: ubuntu-latest
-    needs: security-scan
+    needs: [security-scan, dependency-review]
     if: ${{ !inputs.skip_tests }}
     strategy:
+      fail-fast: false
       matrix:
         environment: [dev, staging, prod]
     timeout-minutes: 15
@@ -153,23 +188,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
+      - name: Setup Python with cache
+        uses: ./.github/actions/python-setup
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
+      - name: Build package
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          echo "🔨 Building package artifacts..."
+          python -m build
+          echo "✅ Package build completed"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.environment }}
+          path: dist/*
+          retention-days: 7
 
       - name: Verify pylint installation
         run: |
@@ -181,7 +214,14 @@ jobs:
 
       - name: Test with pytest
         run: |
-          make test
+          echo "🧪 Running tests for ${{ matrix.environment }}"
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ matrix.environment }}" == "staging" ]; then
+            echo "🔍 Full test suite (main/staging branch)"
+            pytest -q --maxfail=0 -n auto --durations=15
+          else
+            echo "⚡ Fast test suite (PR branch)"
+            pytest -q --maxfail=1 -n auto --durations=15
+          fi
 
       - name: Format check
         run: |
@@ -190,14 +230,22 @@ jobs:
       - name: Test Results Summary
         if: always()
         run: |
-          echo "🧪 Test Results Summary:"
-          echo "Job Status: ${{ job.status }}"
-          echo "Environment: ${{ matrix.environment }}"
+          echo "### 🧪 Test Results - ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine test strategy used
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ matrix.environment }}" == "staging" ]; then
+            echo "- **Strategy**: 🔍 Full test suite (parallel execution)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Strategy**: ⚡ Fast test suite (fail-fast on first failure)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           if [ "${{ job.status }}" != "success" ]; then
-            echo "❌ Tests failed for ${{ matrix.environment }}"
+            echo "- ❌ **Tests failed** for ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
-            echo "✅ All tests passed for ${{ matrix.environment }}"
+            echo "- ✅ **All tests passed** for ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
           fi
 
   web-test:
@@ -209,15 +257,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Setup Python with cache
+        uses: ./.github/actions/python-setup
 
       - name: Test web application
         run: |
@@ -242,15 +283,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Setup Python with cache
+        uses: ./.github/actions/python-setup
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -277,37 +311,68 @@ jobs:
       - name: AWS Test Results
         if: always()
         run: |
-          echo "AWS integration tests completed with status: ${{ job.status }}"
+          echo "### ☁️ AWS Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "- ✅ **AWS integration tests passed**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **AWS integration tests failed**" >> $GITHUB_STEP_SUMMARY
+          fi
 
-  pre-deploy-tests:
-    name: Pre-Deployment Tests
+  deploy:
+    name: Deploy to Environments
     runs-on: ubuntu-latest
-    needs: [test, web-test]
+    needs: [test, web-test, aws-test]
     if: github.ref == 'refs/heads/main' && (needs.aws-test.result == 'success' || needs.aws-test.result == 'skipped' || needs.aws-test.result == null)
     strategy:
+      fail-fast: false
       matrix:
-        environment: [ephemeral, dev, staging, prod]
-    timeout-minutes: 15
+        include:
+          - environment: ephemeral
+            aws_region: us-east-1
+            timeout: 300
+          - environment: dev
+            aws_region: us-east-1
+            timeout: 600
+          - environment: staging
+            aws_region: us-east-1
+            timeout: 900
+          - environment: prod
+            aws_region: us-west-2
+            timeout: 1200
+    environment:
+      name: ${{ matrix.environment }}
+      url: ${{ steps.expose-url.outputs.url || '' }}
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+      - name: Setup Python with cache
+        uses: ./.github/actions/python-setup
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          name: dist-dev
+          path: dist/
 
-      - name: Install dependencies
+      - name: Verify artifacts
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          echo "📦 Verifying downloaded artifacts..."
+          ls -la dist/ || echo "No dist directory found"
+          if [ -d "dist" ]; then
+            echo "✅ Artifacts downloaded successfully"
+            find dist -type f -name "*.whl" -o -name "*.tar.gz" | head -5
+          else
+            echo "⚠️ No artifacts found, proceeding with source deployment"
+          fi
 
-      - name: Environment-specific pre-tests
+      - name: Pre-deployment tests for ${{ matrix.environment }}
         env:
           ENVIRONMENT: ${{ matrix.environment }}
-          AWS_REGION: ${{ matrix.environment == 'prod' && 'us-west-2' || 'us-east-1' }}
+          AWS_REGION: ${{ matrix.aws_region }}
         run: |
           echo "🧪 Running pre-deployment tests for ${{ matrix.environment }}"
 
@@ -319,84 +384,50 @@ jobs:
               ;;
             "dev")
               echo "🛠️ Development environment - comprehensive tests"
-              make test
+              if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+                echo "🔍 Full test suite (main branch)"
+                pytest -q --maxfail=0 -n auto --durations=15
+              else
+                echo "⚡ Fast test suite (PR branch)"
+                pytest -q --maxfail=1 -n auto --durations=15
+              fi
               ;;
             "staging")
               echo "🧪 Staging environment - integration tests"
-              make test
+              echo "🔍 Full test suite (staging environment)"
+              pytest -q --maxfail=0 -n auto --durations=15
               python -c "print('Staging pre-test: Integration validation')"
               ;;
             "prod")
               echo "🔒 Production environment - security and performance tests"
-              make test
+              echo "🔍 Full test suite (production environment)"
+              pytest -q --maxfail=0 -n auto --durations=15
               python -c "print('Production pre-test: Security and performance validation')"
               ;;
           esac
 
           echo "✅ Pre-deployment tests completed for ${{ matrix.environment }}"
 
-  deploy:
-    name: Deploy to Environments
-    runs-on: ubuntu-latest
-    needs: [pre-deploy-tests]
-    if: github.ref == 'refs/heads/main' && (needs.aws-test.result == 'success' || needs.aws-test.result == 'skipped' || needs.aws-test.result == null)
-    strategy:
-      matrix:
-        environment: [ephemeral, dev, staging, prod]
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Configure environment-specific settings
-        env:
-          ENVIRONMENT: ${{ matrix.environment }}
-        run: |
-          echo "🔧 Configuring ${{ matrix.environment }} environment"
-
-          # Set environment-specific variables
-          case "${{ matrix.environment }}" in
-            "ephemeral")
-              echo "EPHEMERAL_MODE=true" >> $GITHUB_ENV
-              echo "DEPLOY_TIMEOUT=300" >> $GITHUB_ENV
-              echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
-              ;;
-            "dev")
-              echo "DEV_MODE=true" >> $GITHUB_ENV
-              echo "DEPLOY_TIMEOUT=600" >> $GITHUB_ENV
-              echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
-              ;;
-            "staging")
-              echo "STAGING_MODE=true" >> $GITHUB_ENV
-              echo "DEPLOY_TIMEOUT=900" >> $GITHUB_ENV
-              echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
-              ;;
-            "prod")
-              echo "PROD_MODE=true" >> $GITHUB_ENV
-              echo "DEPLOY_TIMEOUT=1200" >> $GITHUB_ENV
-              echo "AWS_REGION=us-west-2" >> $GITHUB_ENV
-              ;;
-          esac
-
       - name: Deploy to ${{ matrix.environment }}
         env:
           MY_SECRET: ${{ secrets.MY_SECRET || 'default-secret' }}
           ENVIRONMENT: ${{ matrix.environment }}
-          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_REGION: ${{ matrix.aws_region }}
+          DEPLOY_TIMEOUT: ${{ matrix.timeout }}
         run: |
           set -e
           echo "🚀 Starting deployment to ${{ matrix.environment }}"
+          echo "📍 AWS Region: ${{ matrix.aws_region }}"
+          echo "⏱️ Timeout: ${{ matrix.timeout }}s"
+
+          # Check if artifacts are available
+          if [ -d "dist" ] && [ "$(ls -A dist 2>/dev/null)" ]; then
+            echo "📦 Using pre-built artifacts for deployment"
+            echo "Available artifacts:"
+            ls -la dist/
+          else
+            echo "🔨 Building from source for deployment"
+          fi
 
           # Environment-specific deployment logic
           case "${{ matrix.environment }}" in
@@ -419,6 +450,25 @@ jobs:
           esac
 
           echo "✅ Deployment to ${{ matrix.environment }} completed successfully"
+
+      - name: Expose deployment URL
+        id: expose-url
+        run: |
+          # Set deployment URL based on environment
+          case "${{ matrix.environment }}" in
+            "ephemeral")
+              echo "url=https://ephemeral-${{ github.run_id }}.example.com" >> $GITHUB_OUTPUT
+              ;;
+            "dev")
+              echo "url=https://dev.example.com" >> $GITHUB_OUTPUT
+              ;;
+            "staging")
+              echo "url=https://staging.example.com" >> $GITHUB_OUTPUT
+              ;;
+            "prod")
+              echo "url=https://example.com" >> $GITHUB_OUTPUT
+              ;;
+          esac
 
       - name: Smoke Tests for ${{ matrix.environment }}
         env:
@@ -510,53 +560,57 @@ jobs:
       - name: Deployment Status
         if: always()
         run: |
-          echo "📊 Deployment Summary for ${{ matrix.environment }}:"
-          echo "  Status: ${{ job.status }}"
-          echo "  Environment: ${{ matrix.environment }}"
-          echo "  Region: ${{ env.AWS_REGION }}"
-          echo "  Timeout: ${{ env.DEPLOY_TIMEOUT }}s"
+          echo "### 🚀 Deployment Summary - ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region**: ${{ matrix.aws_region }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timeout**: ${{ matrix.timeout }}s" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ job.status }}" != "success" ]; then
-            echo "❌ Deployment failed for ${{ matrix.environment }}"
+            echo "- ❌ **Deployment failed** for ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
-            echo "✅ Deployment successful for ${{ matrix.environment }}"
+            echo "- ✅ **Deployment successful** for ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
           fi
 
   notify:
     name: Notify Results
     runs-on: ubuntu-latest
-    needs: [security-scan, test, web-test, aws-test, pre-deploy-tests, deploy]
+    needs: [security-scan, dependency-review, test, web-test, aws-test, deploy]
     if: always()
 
     steps:
       - name: Notify Success
         if: needs.deploy.result == 'success'
         run: |
-          echo "🎉 All jobs completed successfully!"
-          echo "✅ Security scan: ${{ needs.security-scan.result }}"
-          echo "✅ Tests: ${{ needs.test.result }}"
-          echo "✅ Web tests: ${{ needs.web-test.result }}"
-          echo "✅ AWS tests: ${{ needs.aws-test.result }}"
-          echo "✅ Pre-deploy tests: ${{ needs.pre-deploy-tests.result }}"
-          echo "✅ Deployment: ${{ needs.deploy.result }}"
-          echo ""
-          echo "🚀 Deployments completed to all environments:"
-          echo "  🔄 Ephemeral: Ready for quick testing"
-          echo "  🛠️ Development: Feature development ready"
-          echo "  🧪 Staging: Pre-production testing ready"
-          echo "  🔒 Production: Live system ready"
+          echo "### 🎉 Pipeline Success Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### ✅ Job Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security scan**: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dependency review**: ${{ needs.dependency-review.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Web tests**: ${{ needs.web-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AWS tests**: ${{ needs.aws-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment**: ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### 🚀 Deployments completed to all environments:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔄 **Ephemeral**: Ready for quick testing" >> $GITHUB_STEP_SUMMARY
+          echo "- 🛠️ **Development**: Feature development ready" >> $GITHUB_STEP_SUMMARY
+          echo "- 🧪 **Staging**: Pre-production testing ready" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 **Production**: Live system ready" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify Failure
-        if: needs.deploy.result == 'failure' || needs.test.result == 'failure' || needs.pre-deploy-tests.result == 'failure'
+        if: needs.deploy.result == 'failure' || needs.test.result == 'failure'
         run: |
-          echo "❌ Pipeline failed!"
-          echo "Security scan: ${{ needs.security-scan.result }}"
-          echo "Tests: ${{ needs.test.result }}"
-          echo "Web tests: ${{ needs.web-test.result }}"
-          echo "AWS tests: ${{ needs.aws-test.result }}"
-          echo "Pre-deploy tests: ${{ needs.pre-deploy-tests.result }}"
-          echo "Deployment: ${{ needs.deploy.result }}"
-          echo ""
-          echo "🔍 Check the failed job logs for details"
+          echo "### ❌ Pipeline Failure Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### 🔍 Job Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security scan**: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dependency review**: ${{ needs.dependency-review.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Web tests**: ${{ needs.web-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AWS tests**: ${{ needs.aws-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment**: ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔍 **Check the failed job logs for details**" >> $GITHUB_STEP_SUMMARY
           exit 1
