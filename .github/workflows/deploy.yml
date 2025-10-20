@@ -1,5 +1,10 @@
 name: Deploy to Production
 
+# Required Secrets:
+# - AWS_ROLE_ARN: The ARN of the AWS IAM role to assume for deployment
+#   Example: arn:aws:iam::123456789012:role/GitHubActionsRole
+#   Configure in: Repository Settings > Secrets and variables > Actions
+
 on:
   push:
     branches: [ main ]
@@ -24,10 +29,10 @@ jobs:
         pip install -r requirements.txt
     
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        role-session-name: GitHubActions-${{ github.run_id }}
         aws-region: us-east-1
     
     - name: Deploy Lambda function
